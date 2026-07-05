@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資産定点観測帳</title>
+<style>
+  :root{
+    --paper:#ECEEEA;
+    --card:#FFFFFF;
+    --ink:#1C2430;
+    --ink-soft:#5A6472;
+    --rule:#D8DBD3;
+    --ai:#234A6B;         /* 藍 見出し・構造 */
+    --plus:#C0392F;       /* 紅 プラス（国内証券表示の慣行） */
+    --minus:#2B5BA8;      /* 青 マイナス */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    font-size:15px;
+    line-height:1.6;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 80px}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:3px double var(--ai);padding-bottom:14px;margin-bottom:24px}
+  h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-weight:600;font-size:26px;letter-spacing:.14em;color:var(--ai)}
+  .subtitle{font-size:12px;color:var(--ink-soft);letter-spacing:.08em}
+
+  section{margin-bottom:36px}
+  .sec-label{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:var(--ai);font-size:15px;letter-spacing:.2em;border-left:4px solid var(--ai);padding-left:10px;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:20px}
+
+  .hero .label{font-size:12px;color:var(--ink-soft);letter-spacing:.15em;margin-bottom:2px}
+  .total-yen{font-size:44px;font-weight:700;letter-spacing:.01em;line-height:1.15}
+  .mom{font-size:15px;margin-top:4px}
+  .plus{color:var(--plus)} .minus{color:var(--minus)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-top:18px}
+  .kpi{background:var(--card);padding:12px 14px}
+  .kpi .k{font-size:11.5px;color:var(--ink-soft);letter-spacing:.08em}
+  .kpi .v{font-size:19px;font-weight:600;margin-top:2px}
+
+  .stackbar{display:flex;height:26px;border-radius:4px;overflow:hidden;border:1px solid var(--rule)}
+  .stackbar div{height:100%}
+  .legend{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 24px}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:13.5px}
+  .legend .chip{width:11px;height:11px;border-radius:2px;flex:none}
+  .legend .nm{flex:1}
+  .legend .amt{font-weight:600}
+  .legend .pct{color:var(--ink-soft);font-size:12px;width:52px;text-align:right}
+
+  .chart-card svg{width:100%;height:auto;display:block}
+  .empty-chart{color:var(--ink-soft);font-size:13px;padding:24px;text-align:center}
+  .chart-caption{font-size:11.5px;color:var(--ink-soft);margin-top:8px}
+
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card)}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--rule);white-space:nowrap}
+  th{font-weight:600;color:var(--ai);font-size:12px;letter-spacing:.06em;border-bottom:2px solid var(--ai);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  td{text-align:right}
+  td.ym{font-weight:600}
+  tbody tr:hover{background:#F6F7F4}
+  .btn-mini{font-size:12px;padding:3px 10px;border:1px solid var(--rule);background:#FAFAF8;border-radius:4px;cursor:pointer;color:var(--ink)}
+  .btn-mini:hover{border-color:var(--ai);color:var(--ai)}
+  .btn-mini.danger:hover{border-color:var(--plus);color:var(--plus)}
+
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+  fieldset{border:1px solid var(--rule);border-radius:6px;padding:14px 16px 16px;min-width:0}
+  legend{font-size:12.5px;color:var(--ai);letter-spacing:.1em;padding:0 6px;font-weight:600}
+  .field{margin-bottom:10px}
+  .field:last-child{margin-bottom:0}
+  label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:3px}
+  input[type=number],input[type=month],input[type=text],select{
+    width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:4px;font-size:15px;
+    font-variant-numeric:tabular-nums;background:#FCFCFA;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--ai);outline-offset:1px}
+  .form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+  .btn{padding:10px 22px;border-radius:5px;border:1px solid var(--ai);cursor:pointer;font-size:14px;letter-spacing:.05em}
+  .btn.primary{background:var(--ai);color:#fff}
+  .btn.primary:hover{background:#1B3A55}
+  .btn.ghost{background:#fff;color:var(--ai)}
+  .btn.ghost:hover{background:#F0F3F1}
+  .form-msg{font-size:13px;color:var(--ink-soft)}
+
+  /* 口座管理 */
+  .acct-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--rule);font-size:14px}
+  .acct-row:last-child{border-bottom:none}
+  .acct-row .chip{width:12px;height:12px;border-radius:3px;flex:none}
+  .acct-row .nm{flex:1;min-width:0}
+  .badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#EEF1EC;color:var(--ink-soft);flex:none}
+  .add-grid{display:grid;grid-template-columns:150px 1fr auto;gap:10px;margin-top:16px;align-items:end}
+  @media (max-width:640px){ .add-grid{grid-template-columns:1fr} }
+
+  .data-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft)}
+  .empty-state p{margin-bottom:16px}
+  footer{margin-top:48px;border-top:1px solid var(--rule);padding-top:14px;font-size:11.5px;color:var(--ink-soft);line-height:1.8}
+
+  @media (max-width:560px){ .total-yen{font-size:34px} h1{font-size:21px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>資産定点観測帳</h1>
+    <div class="subtitle">月一回、全口座、全体を一望する。</div>
+  </header>
+
+  <section id="cloud">
+    <div class="sec-label">ク ラ ウ ド 同 期</div>
+    <div class="card" id="cloud-card"></div>
+  </section>
+
+  <div id="dashboard"></div>
+
+  <section id="entry">
+    <div class="sec-label">実 績 入 力</div>
+    <div class="card">
+      <div class="field" style="max-width:220px;margin-bottom:16px">
+        <label for="f-ym">対象月</label>
+        <input type="month" id="f-ym">
+      </div>
+      <div class="form-grid" id="form-fields"></div>
+      <div class="field" style="margin-top:16px">
+        <label for="f-memo">メモ（任意）</label>
+        <input type="text" id="f-memo" placeholder="例：ボーナス入金、NISA積立増額 など">
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" id="btn-save">この月を保存</button>
+        <button class="btn ghost" id="btn-copy-prev">前月の値をコピー</button>
+        <span class="form-msg" id="form-msg"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="accounts">
+    <div class="sec-label">口 座 の 管 理</div>
+    <div class="card">
+      <div id="acct-list"></div>
+      <div class="add-grid">
+        <div class="field" style="margin:0">
+          <label for="a-type">種別</label>
+          <select id="a-type">
+            <option value="bank">銀行・現金（残高）</option>
+            <option value="sec">証券・運用（評価額＋損益）</option>
+          </select>
+        </div>
+        <div>
+          <div class="field" style="margin-bottom:6px">
+            <label for="a-inst">金融機関</label>
+            <select id="a-inst"></select>
+          </div>
+          <div class="field" id="a-custom-wrap" style="display:none;margin:0">
+            <label for="a-custom">名称（自由入力）</label>
+            <input type="text" id="a-custom" placeholder="例：〇〇信用金庫、持株会 など">
+          </div>
+        </div>
+        <button class="btn ghost" id="btn-add-acct" style="height:42px">口座を追加</button>
+      </div>
+      <p class="chart-caption" style="margin-top:10px" id="acct-msg">口座を削除しても過去の入力データ自体は保持されます。同じ名前・種別で追加し直すと、履歴ごと復活します。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-label">台 帳</div>
+    <div class="card tbl-wrap" id="ledger"></div>
+  </section>
+
+  <section>
+    <div class="sec-label">データ管理</div>
+    <div class="card">
+      <div class="data-actions">
+        <button class="btn ghost" id="btn-export">JSONに書き出す（バックアップ）</button>
+        <button class="btn ghost" id="btn-import">JSONを読み込む</button>
+        <input type="file" id="file-import" accept="application/json" style="display:none">
+        <button class="btn ghost" id="btn-wipe">全データを削除</button>
+      </div>
+      <p class="chart-caption" style="margin-top:12px">データはこのブラウザ内（localStorage）にのみ保存されます。ブラウザの履歴削除やPC移行に備え、月次入力後のJSON書き出しを推奨します。</p>
+    </div>
+  </section>
+
+  <footer>
+    表示慣行について：国内証券口座の表示に合わせ、プラス＝<span class="plus">赤</span>／マイナス＝<span class="minus">青</span>で示しています。<br>
+    自家用ツールです。クラウド同期を有効化した場合のみ、Google Firebase（認証・データ保存）と通信します。未設定の間は外部通信を行いません。
+  </footer>
+</div>
+
+<script>
+/* =========================================================
+   ▼▼▼ Firebase設定の貼り付け場所（手順 STEP 10 で使用）▼▼▼
+   下の「null」を、Firebaseからコピーした { ... } に置き換えます。
+   例）var FIREBASE_CONFIG = { apiKey: "AIza...", authDomain: "xxx.firebaseapp.com", projectId: "xxx", ... };
+   ※ null のままでも、従来どおりのローカル保存モードで問題なく動きます。
+   ========================================================= */
+var FIREBASE_CONFIG = null;
+</script>
+<script>
+"use strict";
+const KEY = "shisan_teiten_v1";
+const PALETTE = ["#8A2A35","#2E5E4E","#3A6EA5","#B4694A","#54628C","#7A5C2E","#4E7A6A","#6B4E7A","#A0522D","#356E7A","#8C5462","#5E7A2E","#3F5D8C","#7A3E5C"];
+const BANK_LIST = ["楽天銀行","住信SBIネット銀行","三井住友銀行","三菱UFJ銀行","みずほ銀行","りそな銀行","ゆうちょ銀行","PayPay銀行","auじぶん銀行","ソニー銀行","イオン銀行","SBI新生銀行","セブン銀行","GMOあおぞらネット銀行","みんなの銀行","現金・タンス預金","その他（自由入力）"];
+const SEC_LIST = ["SBI証券","楽天証券","マネックス証券","松井証券","三菱UFJ eスマート証券（旧auカブコム）","野村證券","大和証券","SMBC日興証券","みずほ証券","PayPay証券","moomoo証券","大和コネクト証券","ウェルスナビ","iDeCo（確定拠出年金）","企業型DC","仮想通貨取引所","その他（自由入力）"];
+const LEGACY = [
+  {id:"rb",     name:"楽天銀行",          type:"bank"},
+  {id:"smbc",   name:"三井住友銀行",      type:"bank"},
+  {id:"sbinet", name:"住信SBIネット銀行", type:"bank"},
+  {id:"rsec",   name:"楽天証券",          type:"sec"},
+  {id:"ssec",   name:"SBI証券",           type:"sec"}
+];
+
+function hashId(s){ let h = 5381; for(const ch of s){ h = (h*33 + ch.codePointAt(0)) >>> 0; } return "acc_" + h.toString(36); }
+function idFor(name, type){
+  const lg = LEGACY.find(a=> a.name === name && a.type === type);
+  return lg ? lg.id : hashId(name + "|" + type);
+}
+function defaultAccounts(){ return LEGACY.map((a,i)=> ({id:a.id, name:a.name, type:a.type, color:PALETTE[i % PALETTE.length]})); }
+
+let state = load();
+
+function load(){
+  try{
+    const s = localStorage.getItem(KEY);
+    if(!s) return fresh();
+    let d = JSON.parse(s);
+    if(!d || typeof d !== "object") return fresh();
+    if(!Array.isArray(d.accounts)){
+      d = { version:2, accounts: defaultAccounts(), months: Array.isArray(d.months) ? d.months : [] };
+    }
+    d.months = Array.isArray(d.months) ? d.months : [];
+    d.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
+    return d;
+  }catch(e){ return fresh(); }
+}
+function fresh(){ return { version:2, accounts: defaultAccounts(), months: [] }; }
+function persist(){ localStorage.setItem(KEY, JSON.stringify(state)); if(fb.user) cloudSave(); }
+function sortedMonths(){ return [...state.months].sort((a,b)=> a.ym < b.ym ? -1 : 1); }
+function banks(){ return state.accounts.filter(a=> a.type === "bank"); }
+function secs(){ return state.accounts.filter(a=> a.type === "sec"); }
+
+function num(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+function totalsOf(m){
+  const bank = banks().reduce((s,a)=> s + num(m.vals && m.vals[a.id]), 0);
+  const sec  = secs().reduce((s,a)=> s + num(m.vals && m.vals[a.id]), 0);
+  const unreal   = secs().reduce((s,a)=> s + num(m.unreal && m.unreal[a.id]), 0);
+  const realized = secs().reduce((s,a)=> s + num(m.realized && m.realized[a.id]), 0);
+  return { bank, sec, total: bank + sec, unreal, realized };
+}
+function fmtYen(n){ return "¥" + Math.round(n).toLocaleString("ja-JP"); }
+function fmtSigned(n){ return (n > 0 ? "+" : "") + Math.round(n).toLocaleString("ja-JP"); }
+function signClass(n){ return n > 0 ? "plus" : (n < 0 ? "minus" : ""); }
+function fmtAxis(n){
+  if(Math.abs(n) >= 1e8) return (n/1e8).toFixed(2).replace(/\.?0+$/,"") + "億";
+  return Math.round(n/1e4).toLocaleString("ja-JP") + "万";
+}
+function ymLabel(ym){ const [y,mm] = ym.split("-"); return y + "年" + Number(mm) + "月"; }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function currentYm(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
+
+/* ---------- charts ---------- */
+function lineChartSVG(points){
+  if(points.length < 2) return '<div class="empty-chart">2ヶ月以上のデータが貯まると推移が表示されます。</div>';
+  const W=720, H=250, pl=66, pr=14, pt=14, pb=30;
+  const iw = W-pl-pr, ih = H-pt-pb;
+  const vs = points.map(p=>p.v);
+  let min = Math.min(...vs), max = Math.max(...vs);
+  if(min === max){ min = min*0.98; max = max*1.02 || 1; }
+  const pad = (max-min)*0.08; min -= pad; max += pad;
+  if(min < 0 && Math.min(...vs) >= 0) min = 0;
+  const x = i => pl + i*(iw/(points.length-1));
+  const y = v => pt + ih - ((v-min)/(max-min))*ih;
+  let g = "";
+  for(let t=0;t<=4;t++){
+    const vv = min + (max-min)*t/4, yy = y(vv);
+    g += `<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#E3E5DF" stroke-width="1"/>`;
+    g += `<text x="${pl-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#5A6472">${fmtAxis(vv)}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(points.length/8));
+  points.forEach((p,i)=>{
+    if(i%step===0 || i===points.length-1){
+      g += `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="#5A6472">${p.ym.replace("-","/")}</text>`;
+    }
+  });
+  const path = points.map((p,i)=> (i?"L":"M") + x(i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
+  const area = path + ` L ${x(points.length-1).toFixed(1)} ${pt+ih} L ${x(0).toFixed(1)} ${pt+ih} Z`;
+  let dots = "";
+  points.forEach((p,i)=>{
+    dots += `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.2" fill="#234A6B"><title>${ymLabel(p.ym)}　${fmtYen(p.v)}</title></circle>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="総資産の推移">
+    ${g}
+    <path d="${area}" fill="#234A6B" opacity="0.07"/>
+    <path d="${path}" fill="none" stroke="#234A6B" stroke-width="2.2" stroke-linejoin="round"/>
+    ${dots}
+  </svg>`;
+}
+function barChartSVG(points){
+  if(points.length < 1) return '<div class="empty-chart">確定損益の入力があると表示されます。</div>';
+  const W=720, H=220, pl=66, pr=14, pt=14, pb=30;
+  const iw = W-pl-pr, ih = H-pt-pb;
+  const vs = points.map(p=>p.v);
+  let max = Math.max(0, ...vs), min = Math.min(0, ...vs);
+  if(max === 0 && min === 0){ max = 1; }
+  const pad = (max-min)*0.1 || 1; max += pad; if(min<0) min -= pad;
+  const y = v => pt + ih - ((v-min)/(max-min))*ih;
+  const bw = Math.min(34, iw/points.length*0.6);
+  const x = i => pl + (i+0.5)*(iw/points.length);
+  let g = "";
+  for(let t=0;t<=4;t++){
+    const vv = min + (max-min)*t/4, yy = y(vv);
+    g += `<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#E3E5DF" stroke-width="1"/>`;
+    g += `<text x="${pl-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#5A6472">${fmtAxis(vv)}</text>`;
+  }
+  const zy = y(0);
+  g += `<line x1="${pl}" y1="${zy}" x2="${W-pr}" y2="${zy}" stroke="#8A93A0" stroke-width="1.2"/>`;
+  let bars = "";
+  const step = Math.max(1, Math.ceil(points.length/8));
+  points.forEach((p,i)=>{
+    const cx = x(i), vy = y(p.v);
+    const top = Math.min(zy, vy), h = Math.max(1, Math.abs(zy-vy));
+    const col = p.v >= 0 ? "#C0392F" : "#2B5BA8";
+    bars += `<rect x="${(cx-bw/2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${col}" opacity="0.85" rx="2"><title>${ymLabel(p.ym)}　${fmtSigned(p.v)}円</title></rect>`;
+    if(i%step===0 || i===points.length-1){
+      bars += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="#5A6472">${p.ym.replace("-","/")}</text>`;
+    }
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="月次の確定損益">${g}${bars}</svg>`;
+}
+
+/* ---------- dashboard ---------- */
+function renderDashboard(){
+  const el = document.getElementById("dashboard");
+  const ms = sortedMonths();
+  if(ms.length === 0){
+    el.innerHTML = `
+      <section><div class="card empty-state">
+        <p>まだ記録がありません。下の「実績入力」から今月分を登録するか、<br>まずはサンプルデータで画面の雰囲気を確認できます。</p>
+        <button class="btn ghost" id="btn-sample">サンプルデータで試す</button>
+      </div></section>`;
+    document.getElementById("btn-sample").addEventListener("click", loadSample);
+    return;
+  }
+  const latest = ms[ms.length-1];
+  const t = totalsOf(latest);
+  const prevT = ms.length >= 2 ? totalsOf(ms[ms.length-2]) : null;
+  const cumRealized = ms.reduce((s,m)=> s + totalsOf(m).realized, 0);
+
+  let momHtml = "";
+  if(prevT){
+    const diff = t.total - prevT.total;
+    const pct = prevT.total ? (diff/prevT.total*100) : 0;
+    const arrow = diff > 0 ? "▲" : (diff < 0 ? "▼" : "―");
+    momHtml = `<div class="mom num ${signClass(diff)}">${arrow} 前月比 ${fmtSigned(diff)}円（${fmtSigned(Number(pct.toFixed(2)))}%）</div>`;
+  }else{
+    momHtml = `<div class="mom" style="color:var(--ink-soft)">前月比は2ヶ月目から表示されます</div>`;
+  }
+
+  let stack = "", legend = "";
+  state.accounts.forEach(a=>{
+    const v = num(latest.vals && latest.vals[a.id]);
+    const pct = t.total ? v/t.total*100 : 0;
+    stack += `<div style="width:${pct}%;background:${a.color}" title="${esc(a.name)} ${fmtYen(v)}"></div>`;
+    legend += `<div class="row num"><span class="chip" style="background:${a.color}"></span><span class="nm">${esc(a.name)}</span><span class="amt">${fmtYen(v)}</span><span class="pct">${pct.toFixed(1)}%</span></div>`;
+  });
+
+  const linePts = ms.map(m=> ({ym:m.ym, v: totalsOf(m).total}));
+  const barPts = ms.map(m=> ({ym:m.ym, v: totalsOf(m).realized}));
+  const hasRealized = barPts.some(p=> p.v !== 0);
+
+  el.innerHTML = `
+    <section>
+      <div class="sec-label">現 在 地</div>
+      <div class="card">
+        <div class="hero">
+          <div>
+            <div class="label">総資産（${ymLabel(latest.ym)}時点）</div>
+            <div class="total-yen num">${fmtYen(t.total)}</div>
+            ${momHtml}
+          </div>
+        </div>
+        <div class="kpis num">
+          <div class="kpi"><div class="k">銀行・現金 計</div><div class="v">${fmtYen(t.bank)}</div></div>
+          <div class="kpi"><div class="k">証券評価額 計</div><div class="v">${fmtYen(t.sec)}</div></div>
+          <div class="kpi"><div class="k">評価損益（含み）</div><div class="v ${signClass(t.unreal)}">${fmtSigned(t.unreal)}円</div></div>
+          <div class="kpi"><div class="k">確定損益 累計</div><div class="v ${signClass(cumRealized)}">${fmtSigned(cumRealized)}円</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-label">内 訳（最新月）</div>
+      <div class="card">
+        <div class="stackbar">${stack}</div>
+        <div class="legend">${legend}</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-label">総資産の推移</div>
+      <div class="card chart-card">${lineChartSVG(linePts)}
+        <div class="chart-caption">点にカーソルを合わせると金額が表示されます。</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-label">確定損益（月次）</div>
+      <div class="card chart-card">
+        ${hasRealized ? barChartSVG(barPts) : '<div class="empty-chart">売却益・配当などの確定損益を入力すると、月ごとの棒グラフが表示されます。</div>'}
+      </div>
+    </section>`;
+}
+
+/* ---------- entry form (dynamic) ---------- */
+function renderForm(){
+  const el = document.getElementById("form-fields");
+  if(state.accounts.length === 0){
+    el.innerHTML = '<div class="empty-chart">口座が登録されていません。下の「口座の管理」から追加してください。</div>';
+    return;
+  }
+  let html = "";
+  const bs = banks();
+  if(bs.length){
+    let f = "";
+    bs.forEach(a=>{
+      f += `<div class="field"><label for="v-${a.id}">${esc(a.name)}</label><input type="number" id="v-${a.id}" placeholder="0"></div>`;
+    });
+    html += `<fieldset><legend>銀行・現金 残高（円）</legend>${f}</fieldset>`;
+  }
+  secs().forEach(a=>{
+    html += `<fieldset><legend>${esc(a.name)}（円）</legend>
+      <div class="field"><label for="v-${a.id}">評価額（口座資産合計）</label><input type="number" id="v-${a.id}" placeholder="0"></div>
+      <div class="field"><label for="u-${a.id}">評価損益（含み・±）</label><input type="number" id="u-${a.id}" placeholder="0"></div>
+      <div class="field"><label for="r-${a.id}">当月の確定損益（±）</label><input type="number" id="r-${a.id}" placeholder="0"></div>
+    </fieldset>`;
+  });
+  el.innerHTML = html;
+}
+function readForm(){
+  const rec = { ym: document.getElementById("f-ym").value, vals:{}, unreal:{}, realized:{}, memo: document.getElementById("f-memo").value.trim() };
+  state.accounts.forEach(a=>{
+    rec.vals[a.id] = num(document.getElementById("v-"+a.id).value);
+    if(a.type === "sec"){
+      rec.unreal[a.id] = num(document.getElementById("u-"+a.id).value);
+      rec.realized[a.id] = num(document.getElementById("r-"+a.id).value);
+    }
+  });
+  return rec;
+}
+function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = (v === 0 || v == null) ? "" : v; }
+function fillForm(ym){
+  const m = state.months.find(x=> x.ym === ym);
+  if(!m) return;
+  document.getElementById("f-ym").value = m.ym;
+  state.accounts.forEach(a=>{
+    setVal("v-"+a.id, m.vals && m.vals[a.id]);
+    if(a.type === "sec"){
+      setVal("u-"+a.id, m.unreal && m.unreal[a.id]);
+      setVal("r-"+a.id, m.realized && m.realized[a.id]);
+    }
+  });
+  document.getElementById("f-memo").value = m.memo || "";
+  msg(ymLabel(ym) + " の記録を編集中（保存で上書きされます）");
+  document.getElementById("entry").scrollIntoView();
+}
+function msg(s){ document.getElementById("form-msg").textContent = s; }
+
+document.getElementById("btn-save").addEventListener("click", ()=>{
+  if(state.accounts.length === 0){ msg("先に口座を登録してください。"); return; }
+  const rec = readForm();
+  if(!rec.ym){ msg("対象月を選択してください。"); return; }
+  const old = state.months.find(m=> m.ym === rec.ym);
+  if(old){
+    /* 登録済み口座以外の過去データ（削除済み口座の履歴）は温存する */
+    rec.vals = Object.assign({}, old.vals, rec.vals);
+    rec.unreal = Object.assign({}, old.unreal, rec.unreal);
+    rec.realized = Object.assign({}, old.realized, rec.realized);
+    state.months[state.months.indexOf(old)] = rec;
+  }else{
+    state.months.push(rec);
+  }
+  persist(); renderAll();
+  msg(ymLabel(rec.ym) + " を保存しました。");
+});
+
+document.getElementById("btn-copy-prev").addEventListener("click", ()=>{
+  const ym = document.getElementById("f-ym").value;
+  const ms = sortedMonths().filter(m=> !ym || m.ym < ym);
+  if(ms.length === 0){ msg("コピーできる過去の記録がありません。"); return; }
+  const p = ms[ms.length-1];
+  state.accounts.forEach(a=>{
+    setVal("v-"+a.id, p.vals && p.vals[a.id]);
+    if(a.type === "sec"){
+      setVal("u-"+a.id, p.unreal && p.unreal[a.id]);
+      setVal("r-"+a.id, "");
+    }
+  });
+  document.getElementById("f-memo").value = "";
+  msg(ymLabel(p.ym) + " の値をコピーしました。変わった項目だけ直してください（確定損益は毎月リセット）。");
+});
+
+/* ---------- account management ---------- */
+function renderInstOptions(){
+  const type = document.getElementById("a-type").value;
+  const list = type === "bank" ? BANK_LIST : SEC_LIST;
+  document.getElementById("a-inst").innerHTML = list.map(n=> `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  toggleCustom();
+}
+function toggleCustom(){
+  const isCustom = document.getElementById("a-inst").value.startsWith("その他");
+  document.getElementById("a-custom-wrap").style.display = isCustom ? "" : "none";
+}
+function renderAccounts(){
+  const el = document.getElementById("acct-list");
+  if(state.accounts.length === 0){
+    el.innerHTML = '<div class="empty-chart">登録済みの口座がありません。</div>';
+    return;
+  }
+  el.innerHTML = state.accounts.map(a=> `
+    <div class="acct-row">
+      <span class="chip" style="background:${a.color}"></span>
+      <span class="nm">${esc(a.name)}</span>
+      <span class="badge">${a.type === "bank" ? "銀行・現金" : "証券・運用"}</span>
+      <button class="btn-mini danger" data-delacc="${a.id}">削除</button>
+    </div>`).join("");
+  el.querySelectorAll("[data-delacc]").forEach(b=> b.addEventListener("click", ()=>{
+    const a = state.accounts.find(x=> x.id === b.dataset.delacc);
+    if(!a) return;
+    if(confirm(a.name + " を口座一覧から外します。\n過去の入力データは保持され、同じ名前・種別で追加し直せば履歴ごと復活します。よろしいですか？")){
+      state.accounts = state.accounts.filter(x=> x.id !== a.id);
+      persist(); renderAll();
+    }
+  }));
+}
+document.getElementById("a-type").addEventListener("change", renderInstOptions);
+document.getElementById("a-inst").addEventListener("change", toggleCustom);
+document.getElementById("btn-add-acct").addEventListener("click", ()=>{
+  const type = document.getElementById("a-type").value;
+  let name = document.getElementById("a-inst").value;
+  if(name.startsWith("その他")){
+    name = document.getElementById("a-custom").value.trim();
+    if(!name){ document.getElementById("acct-msg").textContent = "名称を入力してください。"; return; }
+  }
+  if(state.accounts.some(a=> a.name === name && a.type === type)){
+    document.getElementById("acct-msg").textContent = name + " は登録済みです。"; return;
+  }
+  state.accounts.push({ id: idFor(name, type), name, type, color: PALETTE[state.accounts.length % PALETTE.length] });
+  document.getElementById("a-custom").value = "";
+  persist(); renderAll();
+  document.getElementById("acct-msg").textContent = name + " を追加しました。実績入力の欄にも反映されています。";
+});
+
+/* ---------- ledger ---------- */
+function renderLedger(){
+  const el = document.getElementById("ledger");
+  const ms = sortedMonths();
+  if(ms.length === 0){ el.innerHTML = '<div class="empty-chart">記録が追加されるとここに一覧表示されます。</div>'; return; }
+  let rows = "";
+  [...ms].reverse().forEach(m=>{
+    const t = totalsOf(m);
+    const pos = ms.findIndex(x=> x.ym === m.ym);
+    const prev = pos > 0 ? totalsOf(ms[pos-1]).total : null;
+    const diff = prev == null ? null : t.total - prev;
+    rows += `<tr>
+      <td class="ym num" title="${esc(m.memo||"")}">${m.ym.replace("-","/")}${m.memo ? " ✎" : ""}</td>
+      <td class="num"><strong>${fmtYen(t.total)}</strong></td>
+      <td class="num ${diff==null?"":signClass(diff)}">${diff==null ? "―" : fmtSigned(diff)}</td>
+      <td class="num">${fmtYen(t.bank)}</td>
+      <td class="num">${fmtYen(t.sec)}</td>
+      <td class="num ${signClass(t.unreal)}">${fmtSigned(t.unreal)}</td>
+      <td class="num ${signClass(t.realized)}">${fmtSigned(t.realized)}</td>
+      <td><button class="btn-mini" data-edit="${m.ym}">編集</button> <button class="btn-mini danger" data-del="${m.ym}">削除</button></td>
+    </tr>`;
+  });
+  el.innerHTML = `<table>
+    <thead><tr><th>月</th><th>総資産</th><th>前月比</th><th>銀行計</th><th>証券計</th><th>含み損益</th><th>確定損益(月)</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  el.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=> fillForm(b.dataset.edit)));
+  el.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=>{
+    if(confirm(b.dataset.del.replace("-","年") + "月 の記録を削除します。よろしいですか？")){
+      state.months = state.months.filter(m=> m.ym !== b.dataset.del);
+      persist(); renderAll();
+    }
+  }));
+}
+
+function renderAll(){ renderDashboard(); renderForm(); renderAccounts(); renderLedger(); }
+
+/* ---------- data management ---------- */
+document.getElementById("btn-export").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "資産定点観測_" + currentYm() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("btn-import").addEventListener("click", ()=> document.getElementById("file-import").click());
+document.getElementById("file-import").addEventListener("change", (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      let d = JSON.parse(r.result);
+      if(!d || !Array.isArray(d.months)) throw new Error("bad format");
+      if(!Array.isArray(d.accounts)){
+        d = { version:2, accounts: defaultAccounts(), months: d.months };
+      }
+      if(!confirm("現在のデータを読み込んだ内容で置き換えます。よろしいですか？")) return;
+      state = d;
+      state.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
+      persist(); renderAll();
+    }catch(err){ alert("読み込めませんでした。このアプリで書き出したJSONファイルを選択してください。"); }
+    e.target.value = "";
+  };
+  r.readAsText(f);
+});
+document.getElementById("btn-wipe").addEventListener("click", ()=>{
+  if(confirm("すべての記録と口座設定を削除します。この操作は取り消せません。よろしいですか？")){
+    state = fresh(); persist(); renderAll();
+  }
+});
+
+/* ---------- sample ---------- */
+function loadSample(){
+  const base = [
+    ["2026-01", 820000, 450000, 1300000, 2100000,  120000, 0,     1850000,  95000, 0],
+    ["2026-02", 845000, 452000, 1250000, 2180000,  165000, 0,     1930000, 140000, 0],
+    ["2026-03", 780000, 455000, 1400000, 2120000,  110000, 32000, 1980000, 155000, 0],
+    ["2026-04", 810000, 458000, 1380000, 2260000,  190000, 0,     2050000, 190000, 18000],
+    ["2026-05", 860000, 460000, 1350000, 2310000,  205000, 0,     2110000, 215000, 0],
+    ["2026-06", 895000, 462000, 1420000, 2280000,  175000, 45000, 2190000, 250000, 0]
+  ];
+  state = fresh();
+  state.months = base.map(r=> ({
+    ym: r[0],
+    vals: {rb:r[1], smbc:r[2], sbinet:r[3], rsec:r[4], ssec:r[7]},
+    unreal: {rsec:r[5], ssec:r[8]},
+    realized: {rsec:r[6], ssec:r[9]},
+    memo: r[0]==="2026-03" ? "一部利確" : ""
+  }));
+  persist(); renderAll();
+}
+
+
+/* ---------- クラウド同期（Firebase） ---------- */
+let fb = { ready:false, user:null, app:null, auth:null, db:null, authM:null, fsM:null };
+
+function normalizeData(d){
+  if(!d || typeof d !== "object") return fresh();
+  if(!Array.isArray(d.accounts)) d = { version:2, accounts: defaultAccounts(), months: Array.isArray(d.months) ? d.months : [] };
+  d.months = Array.isArray(d.months) ? d.months : [];
+  d.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
+  return d;
+}
+function getFbConfig(){
+  if(typeof FIREBASE_CONFIG !== "undefined" && FIREBASE_CONFIG) return FIREBASE_CONFIG;
+  try{ const s = localStorage.getItem("fb_config"); return s ? JSON.parse(s) : null; }catch(e){ return null; }
+}
+function setCloudMsg(s){ const el = document.getElementById("cloud-status"); if(el) el.textContent = s; }
+
+function renderCloudCard(){
+  const el = document.getElementById("cloud-card");
+  if(!el) return;
+  const cfg = getFbConfig();
+  if(!cfg){
+    el.innerHTML = `
+      <p style="font-size:13.5px;margin-bottom:10px">未設定（現在はこのブラウザ内だけに保存する<strong>ローカルモード</strong>で動作中）。<br>
+      推奨はGitHub上でファイル内のFIREBASE_CONFIGを書き換える方法ですが、下の欄に貼り付けてこの端末だけ有効化することもできます。</p>
+      <div class="field"><label for="fb-cfg">Firebase設定（firebaseConfig = { ... } をそのまま貼り付けでOK）</label>
+      <textarea id="fb-cfg" rows="4" style="width:100%;font-size:12.5px;font-family:ui-monospace,monospace;padding:8px;border:1px solid var(--rule);border-radius:4px;background:#FCFCFA;color:var(--ink)"></textarea></div>
+      <div class="form-actions"><button class="btn ghost" id="btn-fb-set">貼り付けた設定で有効化</button><span class="form-msg" id="cloud-status"></span></div>`;
+    document.getElementById("btn-fb-set").addEventListener("click", applyPastedConfig);
+    return;
+  }
+  if(!fb.ready){
+    el.innerHTML = `<p style="font-size:13.5px">クラウド設定を読み込み中…（インターネット接続が必要です）</p><p class="form-msg" id="cloud-status"></p>`;
+    return;
+  }
+  if(!fb.user){
+    const fileWarn = location.protocol === "file:" ? `<p class="chart-caption" style="margin-top:8px">※ログインはGitHub PagesのURL（https）で開いたときのみ可能です。PC上のファイルを直接開いている間はローカル保存で動きます。</p>` : "";
+    el.innerHTML = `<div class="form-actions" style="margin:0"><button class="btn primary" id="btn-login">Googleでログインして同期を開始</button><span class="form-msg" id="cloud-status"></span></div>${fileWarn}`;
+    document.getElementById("btn-login").addEventListener("click", doLogin);
+    return;
+  }
+  el.innerHTML = `<div class="form-actions" style="margin:0">
+    <span style="font-size:13.5px">同期オン：<strong>${esc(fb.user.email || "")}</strong></span>
+    <button class="btn-mini" id="btn-logout">ログアウト</button>
+    <span class="form-msg" id="cloud-status"></span></div>`;
+  document.getElementById("btn-logout").addEventListener("click", ()=>{ fb.authM.signOut(fb.auth); });
+}
+function applyPastedConfig(){
+  const raw = document.getElementById("fb-cfg").value;
+  const m = raw.match(/\{[\s\S]*\}/);
+  if(!m){ setCloudMsg("設定が見つかりません。{ } で囲まれた部分ごと貼り付けてください。"); return; }
+  try{
+    const cfg = (new Function("return (" + m[0] + ")"))();
+    if(!cfg.apiKey || !cfg.projectId) throw new Error("missing keys");
+    localStorage.setItem("fb_config", JSON.stringify(cfg));
+    setCloudMsg("設定を保存しました。読み込み中…");
+    initCloud();
+  }catch(e){ setCloudMsg("設定を読み取れませんでした。コピー範囲を確認してください。"); }
+}
+async function initCloud(){
+  renderCloudCard();
+  const cfg = getFbConfig();
+  if(!cfg) return;
+  try{
+    const V = "10.12.2";
+    const [appM, authM, fsM] = await Promise.all([
+      import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
+      import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`),
+      import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`)
+    ]);
+    fb.app = appM.initializeApp(cfg);
+    fb.auth = authM.getAuth(fb.app);
+    fb.db = fsM.getFirestore(fb.app);
+    fb.authM = authM; fb.fsM = fsM; fb.ready = true;
+    authM.onAuthStateChanged(fb.auth, async (user)=>{
+      fb.user = user;
+      renderCloudCard();
+      if(user){ await syncOnLogin(); }
+    });
+    renderCloudCard();
+  }catch(e){
+    fb.ready = false;
+    const el = document.getElementById("cloud-card");
+    if(el) el.innerHTML = `<p style="font-size:13.5px">クラウド設定の読み込みに失敗しました（${esc(e.message)}）。インターネット接続と設定内容を確認してください。ローカル保存は通常どおり動作しています。</p>`;
+  }
+}
+async function doLogin(){
+  try{
+    await fb.authM.signInWithPopup(fb.auth, new fb.authM.GoogleAuthProvider());
+  }catch(e){
+    setCloudMsg("ログインできませんでした：" + (e.code || e.message) + "（ポップアップのブロック、または承認済みドメイン未登録の可能性）");
+  }
+}
+async function syncOnLogin(){
+  try{
+    const ref = fb.fsM.doc(fb.db, "users", fb.user.uid);
+    const snap = await fb.fsM.getDoc(ref);
+    if(snap.exists() && snap.data() && snap.data().payload){
+      state = normalizeData(JSON.parse(snap.data().payload));
+      localStorage.setItem(KEY, JSON.stringify(state));
+      renderAll();
+      setCloudMsg("クラウドのデータを読み込みました。");
+    }else{
+      await cloudSave();
+      setCloudMsg("この端末のデータをクラウドへ保存しました。");
+    }
+  }catch(e){ setCloudMsg("同期エラー：" + (e.code || e.message)); }
+}
+async function cloudSave(){
+  if(!fb.user || !fb.ready) return;
+  try{
+    await fb.fsM.setDoc(fb.fsM.doc(fb.db, "users", fb.user.uid), { payload: JSON.stringify(state), updatedAt: Date.now() });
+    const t = new Date();
+    setCloudMsg("クラウド保存済み " + String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0"));
+  }catch(e){ setCloudMsg("クラウド保存に失敗：" + (e.code || e.message)); }
+}
+
+/* ---------- init ---------- */
+document.getElementById("f-ym").value = currentYm();
+renderInstOptions();
+renderAll();
+initCloud();
+</script>
+</body>
+</html>
