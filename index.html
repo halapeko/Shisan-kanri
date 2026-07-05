@@ -122,6 +122,7 @@
   <section id="entry">
     <div class="sec-label">実 績 入 力</div>
     <div class="card">
+      <p class="chart-caption" style="margin-bottom:14px">入力欄は下の「口座の管理」と連動しています。口座を追加すると、ここに入力欄が自動で増えます（銀行・現金は左のブロック内に、証券・運用は1口座ずつブロックが追加されます）。</p>
       <div class="field" style="max-width:220px;margin-bottom:16px">
         <label for="f-ym">対象月</label>
         <input type="month" id="f-ym">
@@ -136,6 +137,24 @@
         <button class="btn ghost" id="btn-copy-prev">前月の値をコピー</button>
         <span class="form-msg" id="form-msg"></span>
       </div>
+    </div>
+  </section>
+
+  <section id="targets">
+    <div class="sec-label">目 標 計 画</div>
+    <div class="card">
+      <p class="chart-caption" style="margin-bottom:12px">毎月の目標総資産を設定すると、「総資産の推移」グラフに破線で重なり、実績と比較できます。一括作成で計画のたたき台を作り、月ごとに微調整するのがおすすめです。</p>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div class="field"><label for="tg-start">開始月</label><input type="month" id="tg-start"></div>
+        <div class="field"><label for="tg-base">開始月の目標額（円）</label><input type="number" id="tg-base" placeholder="例：6000000"></div>
+        <div class="field"><label for="tg-step">毎月の増加額（円）</label><input type="number" id="tg-step" placeholder="例：100000"></div>
+        <div class="field"><label for="tg-count">作成する月数</label><input type="number" id="tg-count" value="12"></div>
+      </div>
+      <div class="form-actions" style="margin-top:8px">
+        <button class="btn ghost" id="btn-tg-gen">計画を一括作成</button>
+        <span class="form-msg" id="tgt-msg"></span>
+      </div>
+      <div id="tgt-list" style="margin-top:14px"></div>
     </div>
   </section>
 
@@ -240,11 +259,12 @@ function load(){
       d = { version:2, accounts: defaultAccounts(), months: Array.isArray(d.months) ? d.months : [] };
     }
     d.months = Array.isArray(d.months) ? d.months : [];
+    if(!d.targets || typeof d.targets !== "object" || Array.isArray(d.targets)) d.targets = {};
     d.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
     return d;
   }catch(e){ return fresh(); }
 }
-function fresh(){ return { version:2, accounts: defaultAccounts(), months: [] }; }
+function fresh(){ return { version:2, accounts: defaultAccounts(), months: [], targets: {} }; }
 function persist(){ localStorage.setItem(KEY, JSON.stringify(state)); if(fb.user) cloudSave(); }
 function sortedMonths(){ return [...state.months].sort((a,b)=> a.ym < b.ym ? -1 : 1); }
 function banks(){ return state.accounts.filter(a=> a.type === "bank"); }
@@ -270,41 +290,45 @@ function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&
 function currentYm(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
 
 /* ---------- charts ---------- */
-function lineChartSVG(points){
-  if(points.length < 2) return '<div class="empty-chart">2ヶ月以上のデータが貯まると推移が表示されます。</div>';
+function lineChartSVG(actual, target){
+  target = target || [];
+  const yms = [...new Set([...actual.map(p=>p.ym), ...target.map(p=>p.ym)])].sort();
+  if(yms.length < 2) return '<div class="empty-chart">2ヶ月以上のデータ（実績または目標）が貯まると推移が表示されます。</div>';
   const W=720, H=250, pl=66, pr=14, pt=14, pb=30;
   const iw = W-pl-pr, ih = H-pt-pb;
-  const vs = points.map(p=>p.v);
-  let min = Math.min(...vs), max = Math.max(...vs);
+  const all = [...actual.map(p=>p.v), ...target.map(p=>p.v)];
+  let min = Math.min(...all), max = Math.max(...all);
   if(min === max){ min = min*0.98; max = max*1.02 || 1; }
   const pad = (max-min)*0.08; min -= pad; max += pad;
-  if(min < 0 && Math.min(...vs) >= 0) min = 0;
-  const x = i => pl + i*(iw/(points.length-1));
+  if(min < 0 && Math.min(...all) >= 0) min = 0;
+  const x = ym => pl + yms.indexOf(ym)*(iw/(yms.length-1));
   const y = v => pt + ih - ((v-min)/(max-min))*ih;
   let g = "";
-  for(let t=0;t<=4;t++){
-    const vv = min + (max-min)*t/4, yy = y(vv);
+  for(let t2=0;t2<=4;t2++){
+    const vv = min + (max-min)*t2/4, yy = y(vv);
     g += `<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#E3E5DF" stroke-width="1"/>`;
     g += `<text x="${pl-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#5A6472">${fmtAxis(vv)}</text>`;
   }
-  const step = Math.max(1, Math.ceil(points.length/8));
-  points.forEach((p,i)=>{
-    if(i%step===0 || i===points.length-1){
-      g += `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="#5A6472">${p.ym.replace("-","/")}</text>`;
+  const step = Math.max(1, Math.ceil(yms.length/8));
+  yms.forEach((ym,i)=>{
+    if(i%step===0 || i===yms.length-1){
+      g += `<text x="${x(ym)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="#5A6472">${ym.replace("-","/")}</text>`;
     }
   });
-  const path = points.map((p,i)=> (i?"L":"M") + x(i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
-  const area = path + ` L ${x(points.length-1).toFixed(1)} ${pt+ih} L ${x(0).toFixed(1)} ${pt+ih} Z`;
-  let dots = "";
-  points.forEach((p,i)=>{
-    dots += `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.2" fill="#234A6B"><title>${ymLabel(p.ym)}　${fmtYen(p.v)}</title></circle>`;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="総資産の推移">
-    ${g}
-    <path d="${area}" fill="#234A6B" opacity="0.07"/>
-    <path d="${path}" fill="none" stroke="#234A6B" stroke-width="2.2" stroke-linejoin="round"/>
-    ${dots}
-  </svg>`;
+  const mkPath = pts => pts.map((p,i)=> (i?"L":"M") + x(p.ym).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
+  let tgtLayer = "";
+  if(target.length){
+    tgtLayer += `<path d="${mkPath(target)}" fill="none" stroke="#B08A2E" stroke-width="2" stroke-dasharray="6 5" stroke-linejoin="round"/>`;
+    target.forEach(p=>{ tgtLayer += `<circle cx="${x(p.ym).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" fill="#B08A2E"><title>目標 ${ymLabel(p.ym)}　${fmtYen(p.v)}</title></circle>`; });
+  }
+  let actLayer = "";
+  if(actual.length){
+    const path = mkPath(actual);
+    if(actual.length > 1) actLayer += `<path d="${path} L ${x(actual[actual.length-1].ym).toFixed(1)} ${pt+ih} L ${x(actual[0].ym).toFixed(1)} ${pt+ih} Z" fill="#234A6B" opacity="0.07"/>`;
+    actLayer += `<path d="${path}" fill="none" stroke="#234A6B" stroke-width="2.2" stroke-linejoin="round"/>`;
+    actual.forEach(p=>{ actLayer += `<circle cx="${x(p.ym).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.2" fill="#234A6B"><title>実績 ${ymLabel(p.ym)}　${fmtYen(p.v)}</title></circle>`; });
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="総資産の推移（実績と目標）">${g}${tgtLayer}${actLayer}</svg>`;
 }
 function barChartSVG(points){
   if(points.length < 1) return '<div class="empty-chart">確定損益の入力があると表示されます。</div>';
@@ -376,6 +400,9 @@ function renderDashboard(){
   });
 
   const linePts = ms.map(m=> ({ym:m.ym, v: totalsOf(m).total}));
+  const targetPts = Object.keys(state.targets || {}).sort().map(ym=> ({ym, v: num(state.targets[ym])}));
+  const tgtV = (state.targets || {})[latest.ym];
+  const tgtKpi = tgtV != null ? `<div class="kpi"><div class="k">目標比（当月）</div><div class="v ${signClass(t.total - tgtV)}">${fmtSigned(t.total - tgtV)}円</div></div>` : "";
   const barPts = ms.map(m=> ({ym:m.ym, v: totalsOf(m).realized}));
   const hasRealized = barPts.some(p=> p.v !== 0);
 
@@ -395,6 +422,7 @@ function renderDashboard(){
           <div class="kpi"><div class="k">証券評価額 計</div><div class="v">${fmtYen(t.sec)}</div></div>
           <div class="kpi"><div class="k">評価損益（含み）</div><div class="v ${signClass(t.unreal)}">${fmtSigned(t.unreal)}円</div></div>
           <div class="kpi"><div class="k">確定損益 累計</div><div class="v ${signClass(cumRealized)}">${fmtSigned(cumRealized)}円</div></div>
+          ${tgtKpi}
         </div>
       </div>
     </section>
@@ -409,8 +437,8 @@ function renderDashboard(){
 
     <section>
       <div class="sec-label">総資産の推移</div>
-      <div class="card chart-card">${lineChartSVG(linePts)}
-        <div class="chart-caption">点にカーソルを合わせると金額が表示されます。</div>
+      <div class="card chart-card">${lineChartSVG(linePts, targetPts)}
+        <div class="chart-caption"><span style="color:#234A6B">■ 実線＝実績</span>　<span style="color:#B08A2E">■ 破線＝目標</span>　点にカーソルを合わせると金額が表示されます。目標は「目標計画」で設定できます。</div>
       </div>
     </section>
 
@@ -561,6 +589,68 @@ document.getElementById("btn-add-acct").addEventListener("click", ()=>{
   document.getElementById("acct-msg").textContent = name + " を追加しました。実績入力の欄にも反映されています。";
 });
 
+/* ---------- 目標計画 ---------- */
+function ymAdd(ym, n){
+  const [yy,mm] = ym.split("-").map(Number);
+  const t = (yy*12 + (mm-1)) + n;
+  return Math.floor(t/12) + "-" + String((t%12) + 1).padStart(2,"0");
+}
+function renderTargets(){
+  const el = document.getElementById("tgt-list");
+  if(!el) return;
+  const yms = Object.keys(state.targets || {}).sort();
+  const rows = yms.map(ym=> `
+    <tr>
+      <td class="ym num">${ym.replace("-","/")}</td>
+      <td><input type="number" class="num" data-tgt="${ym}" value="${num(state.targets[ym])}" style="max-width:200px;text-align:right"></td>
+      <td><button class="btn-mini danger" data-tgt-del="${ym}">削除</button></td>
+    </tr>`).join("");
+  el.innerHTML = `
+    ${yms.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>月</th><th>目標総資産（円）</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="form-actions"><button class="btn ghost" id="btn-tg-save">金額の変更を保存</button></div>` : '<div class="empty-chart">目標はまだ設定されていません。上の一括作成、または下の追加から設定できます。</div>'}
+    <div class="add-grid" style="grid-template-columns:180px 1fr auto;margin-top:12px">
+      <div class="field" style="margin:0"><label for="tg-add-ym">月</label><input type="month" id="tg-add-ym"></div>
+      <div class="field" style="margin:0"><label for="tg-add-v">目標総資産（円）</label><input type="number" id="tg-add-v" placeholder="0"></div>
+      <button class="btn ghost" id="btn-tg-add" style="height:42px">1ヶ月分を追加・更新</button>
+    </div>`;
+  document.getElementById("tg-add-ym").value = currentYm();
+  const save = document.getElementById("btn-tg-save");
+  if(save) save.addEventListener("click", ()=>{
+    el.querySelectorAll("input[data-tgt]").forEach(inp=>{ state.targets[inp.dataset.tgt] = num(inp.value); });
+    persist(); renderAll();
+    document.getElementById("tgt-msg").textContent = "目標を保存しました。";
+  });
+  el.querySelectorAll("[data-tgt-del]").forEach(b=> b.addEventListener("click", ()=>{
+    delete state.targets[b.dataset.tgtDel];
+    persist(); renderAll();
+  }));
+  document.getElementById("btn-tg-add").addEventListener("click", ()=>{
+    const ym = document.getElementById("tg-add-ym").value;
+    if(!ym){ document.getElementById("tgt-msg").textContent = "月を選択してください。"; return; }
+    state.targets[ym] = num(document.getElementById("tg-add-v").value);
+    persist(); renderAll();
+    document.getElementById("tgt-msg").textContent = ymLabel(ym) + " の目標を設定しました。";
+  });
+}
+document.getElementById("btn-tg-gen").addEventListener("click", ()=>{
+  const start = document.getElementById("tg-start").value;
+  const base = num(document.getElementById("tg-base").value);
+  const stepV = num(document.getElementById("tg-step").value);
+  const count = Math.min(120, Math.max(1, num(document.getElementById("tg-count").value) || 12));
+  if(!start || base <= 0){ document.getElementById("tgt-msg").textContent = "開始月と開始月の目標額を入力してください。"; return; }
+  for(let i=0;i<count;i++){
+    if(state.targets[ymAdd(start,i)] != null){
+      if(!confirm("既存の目標と重なる月があります。上書きしますか？")) return;
+      break;
+    }
+  }
+  for(let i=0;i<count;i++){ state.targets[ymAdd(start,i)] = base + stepV*i; }
+  persist(); renderAll();
+  document.getElementById("tgt-msg").textContent = count + "ヶ月分の目標を作成しました。グラフに破線で表示されています。";
+});
+
 /* ---------- ledger ---------- */
 function renderLedger(){
   const el = document.getElementById("ledger");
@@ -572,6 +662,7 @@ function renderLedger(){
     const pos = ms.findIndex(x=> x.ym === m.ym);
     const prev = pos > 0 ? totalsOf(ms[pos-1]).total : null;
     const diff = prev == null ? null : t.total - prev;
+    const tv = (state.targets || {})[m.ym];
     rows += `<tr>
       <td class="ym num" title="${esc(m.memo||"")}">${m.ym.replace("-","/")}${m.memo ? " ✎" : ""}</td>
       <td class="num"><strong>${fmtYen(t.total)}</strong></td>
@@ -580,11 +671,12 @@ function renderLedger(){
       <td class="num">${fmtYen(t.sec)}</td>
       <td class="num ${signClass(t.unreal)}">${fmtSigned(t.unreal)}</td>
       <td class="num ${signClass(t.realized)}">${fmtSigned(t.realized)}</td>
+      <td class="num ${tv != null ? signClass(t.total - tv) : ""}">${tv != null ? fmtSigned(t.total - tv) : "―"}</td>
       <td><button class="btn-mini" data-edit="${m.ym}">編集</button> <button class="btn-mini danger" data-del="${m.ym}">削除</button></td>
     </tr>`;
   });
   el.innerHTML = `<table>
-    <thead><tr><th>月</th><th>総資産</th><th>前月比</th><th>銀行計</th><th>証券計</th><th>含み損益</th><th>確定損益(月)</th><th></th></tr></thead>
+    <thead><tr><th>月</th><th>総資産</th><th>前月比</th><th>銀行計</th><th>証券計</th><th>含み損益</th><th>確定損益(月)</th><th>目標比</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   el.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=> fillForm(b.dataset.edit)));
   el.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=>{
@@ -595,7 +687,7 @@ function renderLedger(){
   }));
 }
 
-function renderAll(){ renderDashboard(); renderForm(); renderAccounts(); renderLedger(); }
+function renderAll(){ renderDashboard(); renderForm(); renderAccounts(); renderTargets(); renderLedger(); }
 
 /* ---------- data management ---------- */
 document.getElementById("btn-export").addEventListener("click", ()=>{
@@ -619,8 +711,7 @@ document.getElementById("file-import").addEventListener("change", (e)=>{
         d = { version:2, accounts: defaultAccounts(), months: d.months };
       }
       if(!confirm("現在のデータを読み込んだ内容で置き換えます。よろしいですか？")) return;
-      state = d;
-      state.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
+      state = normalizeData(d);
       persist(); renderAll();
     }catch(err){ alert("読み込めませんでした。このアプリで書き出したJSONファイルを選択してください。"); }
     e.target.value = "";
@@ -662,6 +753,7 @@ function normalizeData(d){
   if(!d || typeof d !== "object") return fresh();
   if(!Array.isArray(d.accounts)) d = { version:2, accounts: defaultAccounts(), months: Array.isArray(d.months) ? d.months : [] };
   d.months = Array.isArray(d.months) ? d.months : [];
+  if(!d.targets || typeof d.targets !== "object" || Array.isArray(d.targets)) d.targets = {};
   d.accounts.forEach((a,i)=>{ if(!a.color) a.color = PALETTE[i % PALETTE.length]; });
   return d;
 }
@@ -773,6 +865,7 @@ async function cloudSave(){
 
 /* ---------- init ---------- */
 document.getElementById("f-ym").value = currentYm();
+document.getElementById("tg-start").value = currentYm();
 renderInstOptions();
 renderAll();
 initCloud();
