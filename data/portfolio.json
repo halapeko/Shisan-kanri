@@ -24,7 +24,7 @@
     { "key": "dmBond",  "name": "先進国債券",           "targetPct": 15, "expReturnPct": 2.5, "riskPct": 9,  "color": "#54628C" },
     { "key": "jpBond",  "name": "国内債券",             "targetPct": 5,  "expReturnPct": 0.7, "riskPct": 2,  "color": "#7A5C2E" },
     { "key": "gold",    "name": "金",                   "targetPct": 10, "expReturnPct": 3.0, "riskPct": 13, "color": "#B4694A" },
-    { "key": "jpStock", "name": "個別株（日本株式）",   "targetPct": 25, "expReturnPct": 7.0, "riskPct": 23, "color": "#8A2A35" }
+    { "key": "jpStock", "name": "日本株式（高配当株・個別株）", "targetPct": 25, "expReturnPct": 7.0, "riskPct": 23, "color": "#8A2A35" }
   ],
   "assumptionsNote": "期待リターンは各クラスの長期想定（年率・税費用控除前の概算）。加重平均で約5.0%になるよう設計。リスク(σ)は過去実績ベースの概算で、クラス間の相関(株式と債券・金の低相関)によりポートフォリオ全体のリスクは単純加重平均より低くなる想定。数値は data/portfolio.json を編集して調整可能。",
   "products": [
@@ -87,9 +87,48 @@
       "nisa": "growth",
       "price": null,
       "priceDate": null
+    },
+    {
+      "key": "tracers_nk50hd",
+      "name": "Tracers 日経平均高配当株50インデックス（奇数月分配型）",
+      "kind": "fund",
+      "classKey": "jpStock",
+      "isin": "JP90C000QF97",
+      "assocCode": "02313241",
+      "feePct": 0.10725,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "jgb191",
+      "name": "個人向け国債 変動10年 第191回",
+      "kind": "manual",
+      "classKey": "jpBond",
+      "nisa": "none",
+      "note": "額面評価。保有側の valueOverride で管理（変動10年は元本割れなし）",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "gold_physical",
+      "name": "金（現物・グラム建て）",
+      "kind": "gold_jpyg",
+      "classKey": "gold",
+      "nisa": "none",
+      "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035×1.1（消費税相当）の概算買取価格",
+      "price": null,
+      "priceDate": null
     }
   ],
-  "holdings": [],
+  "holdings": [
+    { "productKey": "tracers_nk50hd", "account": "未確認", "units": 211886 },
+    { "productKey": "dmbond", "account": "未確認（ロット1）", "units": 146038 },
+    { "productKey": "dmbond", "account": "未確認（ロット2）", "units": 145330 },
+    { "productKey": "sp500", "account": "未確認", "units": 61154 },
+    { "productKey": "jgb191", "account": "課税", "valueOverride": 300000 },
+    { "productKey": "gold_physical", "account": "純金積立等", "grams": 4.75509 }
+  ],
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
@@ -104,6 +143,11 @@
       "date": "2026-07-15",
       "actor": "claude",
       "message": "ポートフォリオ運用システムを初期構築。目標年率5.0%・投信75%（うちNISA優先）・個別株25%以下の基本配分を設定。保有の登録待ち。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "ユーザー申告に基づき保有6件を登録: Tracers日経平均高配当株50 211,886口／eMAXIS Slim先進国債券 291,368口（2ロット）／eMAXIS Slim S&P500 61,154口／個人向け国債変動10年第191回 30万円／金現物 4.75509g。取得額と口座区分（NISA/課税）は未登録のため、損益・NISA枠表示は登録待ち。"
     }
   ]
 }

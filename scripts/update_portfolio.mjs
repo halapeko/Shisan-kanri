@@ -42,9 +42,9 @@ async function fetchFundNav(prod) {
   return best;
 }
 
-async function fetchStockPrice(prod) {
+async function yahooLast(symbol) {
   const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(prod.ticker)}` +
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
     "?range=5d&interval=1d";
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -59,10 +59,24 @@ async function fetchStockPrice(prod) {
   return { date, price };
 }
 
+const fetchStockPrice = (prod) => yahooLast(prod.ticker);
+
+// 金現物の円/g概算: 国際スポット(USD/トロイオンス) × USDJPY ÷ 31.1035 × 1.1（消費税相当）
+async function fetchGoldJpyPerGram() {
+  const oz = await yahooLast("GC=F");
+  const fx = await yahooLast("JPY=X");
+  const price = (oz.price * fx.price) / 31.1034768 * 1.1;
+  return { date: oz.date, price: Math.round(price * 100) / 100 };
+}
+
 let ok = 0, ng = 0;
 for (const prod of p.products) {
   try {
-    const r = prod.kind === "fund" ? await fetchFundNav(prod) : await fetchStockPrice(prod);
+    let r;
+    if (prod.kind === "fund") r = await fetchFundNav(prod);
+    else if (prod.kind === "stock") r = await fetchStockPrice(prod);
+    else if (prod.kind === "gold_jpyg") r = await fetchGoldJpyPerGram();
+    else { log(`SKIP ${prod.name}（手動評価）`); continue; }
     prod.price = r.price;
     prod.priceDate = r.date;
     ok++;
@@ -74,16 +88,19 @@ for (const prod of p.products) {
 }
 
 /* ---------- 評価額の計算 ---------- */
-// holdings: { productKey, account, units(投信:口数) | shares(株式:株数), cost(取得額合計円), valueOverride? }
+// holdings: { productKey, account, units(投信:口数) | shares(株式:株数) | grams(金現物:g),
+//             cost(取得額合計円), valueOverride?(額面評価などの直接指定) }
 function holdingValue(h) {
   if (Number.isFinite(h.valueOverride)) return h.valueOverride;
   const prod = p.products.find((x) => x.key === h.productKey);
   if (!prod || !Number.isFinite(prod.price)) return null;
   if (prod.kind === "fund") return ((h.units || 0) / 10000) * prod.price; // 基準価額は1万口あたり
+  if (prod.kind === "gold_jpyg") return (h.grams || 0) * prod.price;
   return (h.shares || 0) * prod.price;
 }
 
 const byClass = {};
+const byKind = {};
 let total = 0, cost = 0, valued = 0;
 for (const h of p.holdings) {
   const v = holdingValue(h);
@@ -91,6 +108,7 @@ for (const h of p.holdings) {
   const prod = p.products.find((x) => x.key === h.productKey);
   const ck = prod?.classKey || "other";
   byClass[ck] = (byClass[ck] || 0) + v;
+  byKind[prod?.kind || "other"] = (byKind[prod?.kind || "other"] || 0) + v;
   total += v;
   cost += h.cost || 0;
   valued++;
@@ -137,14 +155,16 @@ if (fullyValued && total > 0) {
       closeAlert(id);
     }
   }
-  const stockW = ((byClass["jpStock"] || 0) / total) * 100;
+  // 比率ルールは資産クラスではなく商品種別で判定する
+  // （日本株式クラスでも投資信託(Tracers等)は投信7割側にカウント）
+  const stockW = ((byKind["stock"] || 0) / total) * 100;
   if (stockW > p.policy.maxStockWeightPct) {
     upsertAlert("cap:stock", "action",
       `【上限超過】個別株比率が ${stockW.toFixed(1)}% となり上限 ${p.policy.maxStockWeightPct}% を超えています。新規の個別株購入を停止し、投信側の積立で希釈してください。`);
   } else {
     closeAlert("cap:stock");
   }
-  const fundW = 100 - stockW;
+  const fundW = ((byKind["fund"] || 0) / total) * 100;
   if (fundW < p.policy.minFundWeightPct) {
     upsertAlert("floor:fund", "warn",
       `【配分注意】投資信託比率が ${fundW.toFixed(1)}% と、方針の ${p.policy.minFundWeightPct}% を下回っています。`);

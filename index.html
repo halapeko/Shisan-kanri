@@ -918,7 +918,9 @@ function holdingValue(p, h, prodMap){
   if(Number.isFinite(h.valueOverride)) return h.valueOverride;
   const prod = prodMap[h.productKey];
   if(!prod || !Number.isFinite(prod.price)) return null;
-  return prod.kind === "fund" ? (h.units||0)/10000*prod.price : (h.shares||0)*prod.price;
+  if(prod.kind === "fund") return (h.units||0)/10000*prod.price;
+  if(prod.kind === "gold_jpyg") return (h.grams||0)*prod.price;
+  return (h.shares||0)*prod.price;
 }
 
 /* 直近1年（最短60日）の修正ディーツ法リターン。flows は取得額の増減で近似 */
@@ -980,10 +982,11 @@ function renderPf(p){
   const updStr = upd ? upd.getFullYear()+"/"+String(upd.getMonth()+1).padStart(2,"0")+"/"+String(upd.getDate()).padStart(2,"0") : "初回自動更新待ち";
   const expReturn = (p.assetClasses||[]).reduce((s,c)=> s + c.targetPct*c.expReturnPct, 0)/100;
 
+  const costKnown = cost > 0;
   const kpiHtml = `<div class="kpis num">
     <div class="kpi"><div class="k">証券ポートフォリオ評価額</div><div class="v">${fmtYen(total)}</div></div>
-    <div class="kpi"><div class="k">取得額 計</div><div class="v">${fmtYen(cost)}</div></div>
-    <div class="kpi"><div class="k">評価損益</div><div class="v ${signClass(pl)}">${fmtSigned(pl)}円（${fmtSigned(Number(plPct.toFixed(1)))}%）</div></div>
+    <div class="kpi"><div class="k">取得額 計</div><div class="v">${costKnown ? fmtYen(cost) : '<span style="font-size:14px;color:var(--ink-soft)">未登録（Claudeに伝えてください）</span>'}</div></div>
+    <div class="kpi"><div class="k">評価損益</div><div class="v ${costKnown ? signClass(pl) : ""}">${costKnown ? fmtSigned(pl)+"円（"+fmtSigned(Number(plPct.toFixed(1)))+"%）" : "—"}</div></div>
     <div class="kpi"><div class="k">実績リターン vs 目標 年${tgtReturn}%</div><div class="v ${annualCls}">${annualHtml}</div></div>
     <div class="kpi"><div class="k">基本配分の期待リターン</div><div class="v">年 ${expReturn.toFixed(2)}%</div></div>
     <div class="kpi"><div class="k">AI最終更新</div><div class="v" style="font-size:15px">${updStr}</div></div>
@@ -1006,19 +1009,27 @@ function renderPf(p){
   }).join("");
 
   /* --- 商品一覧 --- */
-  const nisaLabel = { tsumitate:"NISAつみたて", growth:"NISA成長", none:"特定" };
+  const nisaLabel = { tsumitate:"NISAつみたて", growth:"NISA成長", none:"課税" };
   const prodRows = (p.products||[]).map(x=>{
     const cls = (p.assetClasses||[]).find(c=> c.key === x.classKey);
     const v = byProd[x.key]||0;
     const hs = (p.holdings||[]).filter(h=> h.productKey === x.key);
-    const qty = hs.reduce((s,h)=> s + (h.units||h.shares||0), 0);
-    const priceStr = Number.isFinite(x.price)
-      ? Math.round(x.price).toLocaleString("ja-JP") + "<br><span style='font-size:10.5px;color:var(--ink-soft)'>" + esc(x.priceDate||"") + "</span>"
-      : "<span style='color:var(--ink-soft)'>自動更新待ち</span>";
+    const qty = hs.reduce((s,h)=> s + (h.units||h.shares||h.grams||0), 0);
+    let qtyStr = "—";
+    if(qty){
+      if(x.kind === "fund") qtyStr = qty.toLocaleString("ja-JP") + "口";
+      else if(x.kind === "gold_jpyg") qtyStr = qty.toLocaleString("ja-JP",{maximumFractionDigits:3}) + "g";
+      else if(x.kind === "stock") qtyStr = qty.toLocaleString("ja-JP") + "株";
+    }
+    const priceStr = x.kind === "manual"
+      ? "<span style='color:var(--ink-soft)'>額面評価</span>"
+      : (Number.isFinite(x.price)
+        ? Math.round(x.price).toLocaleString("ja-JP") + (x.kind==="gold_jpyg"?"/g":"") + "<br><span style='font-size:10.5px;color:var(--ink-soft)'>" + esc(x.priceDate||"") + "</span>"
+        : "<span style='color:var(--ink-soft)'>自動更新待ち</span>");
     return `<tr>
-      <td>${esc(x.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${esc(cls?cls.name:"")}／${esc(nisaLabel[x.nisa]||"特定")}${x.feePct!=null?"／信託報酬"+x.feePct+"%":""}</span></td>
+      <td>${esc(x.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${esc(cls?cls.name:"")}／${esc(nisaLabel[x.nisa]||"課税")}${x.feePct!=null?"／信託報酬"+x.feePct+"%":""}</span></td>
       <td class="num">${priceStr}</td>
-      <td class="num">${qty ? qty.toLocaleString("ja-JP") : "—"}</td>
+      <td class="num">${qtyStr}</td>
       <td class="num">${v ? fmtYen(v) : "—"}</td>
       <td class="num">${total && v ? (v/total*100).toFixed(1)+"%" : "—"}</td>
     </tr>`;
