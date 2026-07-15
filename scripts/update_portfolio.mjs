@@ -61,11 +61,12 @@ async function yahooLast(symbol) {
 
 const fetchStockPrice = (prod) => yahooLast(prod.ticker);
 
-// 金現物の円/g概算: 国際スポット(USD/トロイオンス) × USDJPY ÷ 31.1035 × 1.1（消費税相当）
+// 金現物の円/g概算: 国際スポット(USD/トロイオンス) × USDJPY ÷ 31.1035
+// （×1.1の消費税調整は行わない。ユーザーの口座残高表示がスポット税抜相当のため — 初回実行の照合で確認済み）
 async function fetchGoldJpyPerGram() {
   const oz = await yahooLast("GC=F");
   const fx = await yahooLast("JPY=X");
-  const price = (oz.price * fx.price) / 31.1034768 * 1.1;
+  const price = (oz.price * fx.price) / 31.1034768;
   return { date: oz.date, price: Math.round(price * 100) / 100 };
 }
 
