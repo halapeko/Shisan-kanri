@@ -103,6 +103,24 @@
   footer{margin-top:48px;border-top:1px solid var(--rule);padding-top:14px;font-size:11.5px;color:var(--ink-soft);line-height:1.8}
 
   @media (max-width:560px){ .total-yen{font-size:34px} h1{font-size:21px} }
+
+  /* ポートフォリオ運用（AI管理） */
+  .pf-alert{border:1px solid var(--rule);border-left-width:4px;border-left-style:solid;border-radius:4px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;background:#FCFCFA;line-height:1.7}
+  .pf-alert.action{border-left-color:#C0392F}
+  .pf-alert.warn{border-left-color:#B08A2E}
+  .pf-alert.info{border-left-color:#8A93A0;color:var(--ink-soft)}
+  .pf-alert .d{color:var(--ink-soft);font-size:11.5px;margin-right:8px}
+  .pf-row{display:grid;grid-template-columns:140px 1fr 210px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);font-size:13px}
+  .pf-row:last-child{border-bottom:none}
+  @media (max-width:640px){ .pf-row{grid-template-columns:110px 1fr;} .pf-row .drift-badge{grid-column:1/-1;justify-self:end} }
+  .bar-track{position:relative;height:14px;background:#EEF1EC;border-radius:3px}
+  .bar-now{position:absolute;top:0;left:0;height:100%;opacity:.85;border-radius:3px 0 0 3px}
+  .bar-tgt{position:absolute;top:-2px;width:2px;height:18px;background:var(--ink)}
+  .drift-badge{font-size:11px;padding:2px 7px;border-radius:9px;background:#EEF1EC;color:var(--ink-soft);white-space:nowrap;text-align:right}
+  .drift-badge.over{background:#F6E3E1;color:#C0392F;font-weight:600}
+  .pf-sub{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:var(--ai);font-size:13.5px;letter-spacing:.12em;margin:22px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:4px}
+  .ai-log{font-size:12.5px;color:var(--ink-soft);line-height:1.9}
+  .ai-log .d{font-weight:600;margin-right:8px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -118,6 +136,11 @@
   </section>
 
   <div id="dashboard"></div>
+
+  <section id="portfolio">
+    <div class="sec-label">ポ ー ト フ ォ リ オ 運 用（A I 管 理）</div>
+    <div class="card" id="pf-root"><div class="empty-chart">ポートフォリオデータを読み込み中…</div></div>
+  </section>
 
   <section id="entry">
     <div class="sec-label">実 績 入 力</div>
@@ -869,6 +892,236 @@ document.getElementById("tg-start").value = currentYm();
 renderInstOptions();
 renderAll();
 initCloud();
+</script>
+<script>
+/* =========================================================
+   ポートフォリオ運用（AI管理）
+   データ源: data/portfolio.json（GitHub Actions と Claude が自動更新）
+   このブロックは表示専用。売買・保有の記録は Claude へのチャットで依頼する。
+   ========================================================= */
+"use strict";
+(function(){
+const root = document.getElementById("pf-root");
+const DATA_URL = "data/portfolio.json";
+
+fetch(DATA_URL + "?t=" + Date.now())
+  .then(r=>{ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(renderPf)
+  .catch(err=>{
+    root.innerHTML = `<div class="empty-chart">ポートフォリオデータを読み込めませんでした（${esc(err.message)}）。<br>
+    この機能は GitHub Pages のURL（https://〜.github.io/〜）で開いたときに動作します。ローカルファイル（file://）では表示されません。</div>`;
+  });
+
+function pfPct(n){ return (n>0?"+":"") + n.toFixed(1) + "pt"; }
+
+function holdingValue(p, h, prodMap){
+  if(Number.isFinite(h.valueOverride)) return h.valueOverride;
+  const prod = prodMap[h.productKey];
+  if(!prod || !Number.isFinite(prod.price)) return null;
+  return prod.kind === "fund" ? (h.units||0)/10000*prod.price : (h.shares||0)*prod.price;
+}
+
+/* 直近1年（最短60日）の修正ディーツ法リターン。flows は取得額の増減で近似 */
+function modifiedDietz(history){
+  if(!history || history.length < 2) return null;
+  const end = history[history.length-1];
+  const endT = new Date(end.date).getTime();
+  const win = history.filter(s=> endT - new Date(s.date).getTime() <= 366*86400000);
+  if(win.length < 2) return null;
+  const T = (endT - new Date(win[0].date).getTime())/86400000;
+  if(T < 60) return { periodDays:T, r:(win[0].total ? end.total/win[0].total-1 : 0), annualized:null };
+  let F = 0, wF = 0;
+  for(let i=1;i<win.length;i++){
+    const f = (win[i].cost||0) - (win[i-1].cost||0);
+    if(f === 0) continue;
+    const ti = (new Date(win[i].date).getTime() - new Date(win[0].date).getTime())/86400000;
+    F += f; wF += f * (T-ti)/T;
+  }
+  const denom = win[0].total + wF;
+  if(denom <= 0) return null;
+  const r = (end.total - win[0].total - F)/denom;
+  return { periodDays:T, r, annualized: Math.pow(1+r, 365/T) - 1 };
+}
+
+function renderPf(p){
+  const prodMap = {}; (p.products||[]).forEach(x=> prodMap[x.key]=x);
+  const byClass = {}; const byProd = {}; let total = 0, cost = 0;
+  (p.holdings||[]).forEach(h=>{
+    const v = holdingValue(p, h, prodMap);
+    if(v == null) return;
+    const prod = prodMap[h.productKey];
+    const ck = prod ? prod.classKey : "other";
+    byClass[ck] = (byClass[ck]||0) + v;
+    byProd[h.productKey] = (byProd[h.productKey]||0) + v;
+    total += v; cost += (h.cost||0);
+  });
+  const band = (p.policy && p.policy.rebalanceBandPct) || 3;
+  const tgtReturn = (p.policy && p.policy.targetAnnualReturnPct) || 5;
+
+  /* --- アラート --- */
+  const open = (p.alerts||[]).filter(a=> a.status === "open");
+  const alertsHtml = open.length
+    ? open.map(a=> `<div class="pf-alert ${esc(a.level||"info")}"><span class="d num">${esc(a.date||"")}</span>${esc(a.message||"")}</div>`).join("")
+    : `<div class="pf-alert info">未対応のアラートはありません。基本配分の範囲内（±${band}%）で運用中です。</div>`;
+
+  /* --- KPI --- */
+  const pl = total - cost;
+  const plPct = cost > 0 ? pl/cost*100 : 0;
+  const dz = modifiedDietz(p.history);
+  let annualHtml = "—", annualCls = "";
+  if(dz && dz.annualized != null){
+    const a = dz.annualized*100;
+    annualCls = a >= tgtReturn ? "plus" : "minus";
+    annualHtml = fmtSigned(Number(a.toFixed(2))) + "%（直近" + Math.round(dz.periodDays) + "日・年率換算）";
+  }else if(dz){
+    annualHtml = fmtSigned(Number((dz.r*100).toFixed(2))) + "%（累計・観測" + Math.round(dz.periodDays) + "日）";
+  }
+  const upd = p.lastUpdated ? new Date(p.lastUpdated) : null;
+  const updStr = upd ? upd.getFullYear()+"/"+String(upd.getMonth()+1).padStart(2,"0")+"/"+String(upd.getDate()).padStart(2,"0") : "初回自動更新待ち";
+  const expReturn = (p.assetClasses||[]).reduce((s,c)=> s + c.targetPct*c.expReturnPct, 0)/100;
+
+  const kpiHtml = `<div class="kpis num">
+    <div class="kpi"><div class="k">証券ポートフォリオ評価額</div><div class="v">${fmtYen(total)}</div></div>
+    <div class="kpi"><div class="k">取得額 計</div><div class="v">${fmtYen(cost)}</div></div>
+    <div class="kpi"><div class="k">評価損益</div><div class="v ${signClass(pl)}">${fmtSigned(pl)}円（${fmtSigned(Number(plPct.toFixed(1)))}%）</div></div>
+    <div class="kpi"><div class="k">実績リターン vs 目標 年${tgtReturn}%</div><div class="v ${annualCls}">${annualHtml}</div></div>
+    <div class="kpi"><div class="k">基本配分の期待リターン</div><div class="v">年 ${expReturn.toFixed(2)}%</div></div>
+    <div class="kpi"><div class="k">AI最終更新</div><div class="v" style="font-size:15px">${updStr}</div></div>
+  </div>`;
+
+  /* --- 配分（目標 vs 現状） --- */
+  const rowsHtml = (p.assetClasses||[]).map(c=>{
+    const v = byClass[c.key]||0;
+    const w = total ? v/total*100 : 0;
+    const drift = w - c.targetPct;
+    const over = total > 0 && Math.abs(drift) > band;
+    return `<div class="pf-row num">
+      <span>${esc(c.name)}</span>
+      <div class="bar-track" title="現状 ${w.toFixed(1)}% ／ 目標 ${c.targetPct}%">
+        <div class="bar-now" style="width:${Math.min(100,w).toFixed(1)}%;background:${esc(c.color||"#3A6EA5")}"></div>
+        <div class="bar-tgt" style="left:${c.targetPct}%"></div>
+      </div>
+      <span class="drift-badge ${over?"over":""}">${w.toFixed(1)}% / 目標${c.targetPct}%（${pfPct(drift)}）</span>
+    </div>`;
+  }).join("");
+
+  /* --- 商品一覧 --- */
+  const nisaLabel = { tsumitate:"NISAつみたて", growth:"NISA成長", none:"特定" };
+  const prodRows = (p.products||[]).map(x=>{
+    const cls = (p.assetClasses||[]).find(c=> c.key === x.classKey);
+    const v = byProd[x.key]||0;
+    const hs = (p.holdings||[]).filter(h=> h.productKey === x.key);
+    const qty = hs.reduce((s,h)=> s + (h.units||h.shares||0), 0);
+    const priceStr = Number.isFinite(x.price)
+      ? Math.round(x.price).toLocaleString("ja-JP") + "<br><span style='font-size:10.5px;color:var(--ink-soft)'>" + esc(x.priceDate||"") + "</span>"
+      : "<span style='color:var(--ink-soft)'>自動更新待ち</span>";
+    return `<tr>
+      <td>${esc(x.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${esc(cls?cls.name:"")}／${esc(nisaLabel[x.nisa]||"特定")}${x.feePct!=null?"／信託報酬"+x.feePct+"%":""}</span></td>
+      <td class="num">${priceStr}</td>
+      <td class="num">${qty ? qty.toLocaleString("ja-JP") : "—"}</td>
+      <td class="num">${v ? fmtYen(v) : "—"}</td>
+      <td class="num">${total && v ? (v/total*100).toFixed(1)+"%" : "—"}</td>
+    </tr>`;
+  }).join("");
+
+  /* --- NISA枠 --- */
+  let nisaHtml = "";
+  if(p.nisa){
+    const bar = (used, limit, label)=>{
+      const pct = limit ? Math.min(100, used/limit*100) : 0;
+      return `<div class="pf-row num" style="grid-template-columns:180px 1fr 210px">
+        <span>${label}</span>
+        <div class="bar-track"><div class="bar-now" style="width:${pct.toFixed(1)}%;background:#234A6B"></div></div>
+        <span class="drift-badge">${fmtYen(used)} / ${fmtYen(limit)}（${pct.toFixed(0)}%）</span>
+      </div>`;
+    };
+    const y = p.nisa.usedThisYear || {};
+    nisaHtml = `<div class="pf-sub">NISA枠の消化状況（${esc(String(y.year||""))}年）</div>
+      ${bar(y.tsumitate||0, p.nisa.annualTsumitateLimit, "つみたて投資枠（年間）")}
+      ${bar(y.growth||0, p.nisa.annualGrowthLimit, "成長投資枠（年間）")}
+      ${bar(p.nisa.usedLifetime||0, p.nisa.lifetimeLimit, "生涯投資枠")}`;
+  }
+
+  /* --- 推移（月次終値＋最新） --- */
+  let chartHtml = "";
+  if((p.history||[]).length >= 2){
+    const byMonth = {};
+    p.history.forEach(s=>{ byMonth[s.date.slice(0,7)] = s; });
+    const pts = Object.keys(byMonth).sort().map(ym=> ({ym, v: byMonth[ym].total}));
+    if(pts.length >= 2){
+      chartHtml = `<div class="pf-sub">ポートフォリオ評価額の推移</div><div class="chart-card">${lineChartSVG(pts, [])}</div>`;
+    }
+  }
+
+  /* --- 保有未登録の案内 --- */
+  const setupHtml = (p.holdings||[]).length ? "" : `<div class="pf-alert warn">
+    保有商品が未登録です。Claude とのチャットで「オルカンを◯◯口（取得額◯◯円）保有」「◯◯株を◯株購入した」と伝えるだけで
+    data/portfolio.json に記録され、以後の評価・履歴・アラートはすべて自動で更新されます。下の購入プランで初回の買付配分も計算できます。</div>`;
+
+  /* --- 購入プランナー --- */
+  const plannerHtml = `<div class="pf-sub">購入プラン（新規資金の最適配分）</div>
+    <p class="chart-caption" style="margin-bottom:10px">投入額を入れると、基本配分に近づくよう不足クラスから優先して配分します（リバランスは売却ではなく買付配分で行う方針）。</p>
+    <div class="add-grid" style="grid-template-columns:220px auto 1fr">
+      <div class="field" style="margin:0"><label for="pf-amt">投入額（円）</label><input type="number" id="pf-amt" placeholder="例：300000"></div>
+      <button class="btn ghost" id="pf-plan-btn" style="height:42px">配分を計算</button>
+      <span class="form-msg" id="pf-plan-msg"></span>
+    </div>
+    <div id="pf-plan-out" style="margin-top:12px"></div>`;
+
+  /* --- AIログ --- */
+  const logHtml = (p.aiLog||[]).slice(-6).reverse().map(l=>
+    `<div><span class="d num">${esc(l.date)}</span>${l.actor==="claude"?"🤖 Claude":"⚙️ 自動更新"}｜${esc(l.message)}</div>`).join("");
+
+  root.innerHTML = `
+    ${setupHtml}
+    <div class="pf-sub" style="margin-top:0">アラート・推奨アクション</div>
+    ${alertsHtml}
+    <div class="pf-sub">運用状況</div>
+    ${kpiHtml}
+    <div class="pf-sub">アセットアロケーション（縦線＝基本配分、±${band}%超で要リバランス）</div>
+    ${rowsHtml}
+    ${chartHtml}
+    <div class="pf-sub">商品別の状況</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>商品</th><th>基準価額/株価</th><th>保有数</th><th>評価額</th><th>割合</th></tr></thead>
+      <tbody>${prodRows}</tbody>
+    </table></div>
+    ${nisaHtml}
+    ${plannerHtml}
+    <div class="pf-sub">AI管理ログ</div>
+    <div class="ai-log">${logHtml || "ログはまだありません。"}</div>
+    <p class="chart-caption" style="margin-top:16px">価格は GitHub Actions が平日朝に自動取得し、配分のズレ・個別株上限・定期点検のアラートを自動生成します。
+    Claude が週次で運用状況をレビューします。売買の記録・方針変更は Claude へのチャットで依頼してください。投資方針の原本：投資ルール（Google スプレッドシート）。</p>`;
+
+  document.getElementById("pf-plan-btn").addEventListener("click", ()=>{
+    const amt = Number(document.getElementById("pf-amt").value);
+    const out = document.getElementById("pf-plan-out");
+    const msgEl = document.getElementById("pf-plan-msg");
+    if(!isFinite(amt) || amt <= 0){ msgEl.textContent = "投入額を入力してください。"; return; }
+    msgEl.textContent = "";
+    const newTotal = total + amt;
+    const needs = (p.assetClasses||[]).map(c=>{
+      const cur = byClass[c.key]||0;
+      return { c, need: Math.max(0, newTotal*c.targetPct/100 - cur) };
+    });
+    const needSum = needs.reduce((s,n)=> s + n.need, 0);
+    const alloc = needs.map(n=>{
+      let a = needSum > 0 ? amt * n.need/needSum : amt * n.c.targetPct/100;
+      return { c:n.c, amount: a };
+    });
+    const rows = alloc.filter(a=> a.amount >= 1).map(a=>{
+      const prod = (p.products||[]).find(x=> x.classKey === a.c.key);
+      const name = prod ? prod.name : "個別株（投資ルールB・D：理解できる事業のみ／上限" + ((p.policy&&p.policy.maxStockWeightPct)||30) + "%）";
+      const waku = prod ? (nisaLabel[prod.nisa]||"特定") + "枠を優先" : "特定口座";
+      return `<tr><td>${esc(a.c.name)}</td><td>${esc(name)}</td><td class="num"><strong>${fmtYen(a.amount)}</strong></td><td>${esc(waku)}</td></tr>`;
+    }).join("");
+    out.innerHTML = `<div class="tbl-wrap"><table>
+      <thead><tr><th>クラス</th><th>購入商品</th><th>金額</th><th>口座・枠</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <p class="chart-caption" style="margin-top:8px">NISA年間枠（つみたて120万・成長240万）を超える分は、同じ低コスト商品を特定口座で。購入後は Claude に金額と口数を伝えると記録されます。</p>`;
+  });
+}
+})();
 </script>
 </body>
 </html>

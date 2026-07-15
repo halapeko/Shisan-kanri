@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "lastUpdated": null,
+  "policy": {
+    "targetAnnualReturnPct": 5.0,
+    "rebalanceBandPct": 3.0,
+    "regularRebalanceMonths": [1, 7],
+    "maxStockWeightPct": 30.0,
+    "minFundWeightPct": 70.0,
+    "rules": [
+      "レバレッジ・信用取引はしない",
+      "よくわからない産業の銘柄は買わない",
+      "パッシブ（インデックス）商品を中心に、徐々にグロース割合を増やす",
+      "購入資産の7割は投資信託（NISA枠をフルに使い、不足分は低コスト商品を特定口座で）、個別株は3割以下",
+      "基本配分から3%超ズレたらリバランス（原則は毎月の積立配分で調整し、売却は最小限）",
+      "リバランスの定期チェックは半年に1回（1月・7月）",
+      "基本ポートフォリオは数年単位で維持（リスク許容度か市場構造が変化した時のみ見直す）"
+    ],
+    "policySource": "Google スプレッドシート「投資ルール」タブ（10xFM8eo8LNaj1oZL4JX_vPGQWS8jg-SX6jSq2fWJaB0）"
+  },
+  "assetClasses": [
+    { "key": "gEq",     "name": "全世界株式",           "targetPct": 35, "expReturnPct": 5.5, "riskPct": 17, "color": "#2E5E4E" },
+    { "key": "usEq",    "name": "米国株式",             "targetPct": 10, "expReturnPct": 6.5, "riskPct": 18, "color": "#3A6EA5" },
+    { "key": "dmBond",  "name": "先進国債券",           "targetPct": 15, "expReturnPct": 2.5, "riskPct": 9,  "color": "#54628C" },
+    { "key": "jpBond",  "name": "国内債券",             "targetPct": 5,  "expReturnPct": 0.7, "riskPct": 2,  "color": "#7A5C2E" },
+    { "key": "gold",    "name": "金",                   "targetPct": 10, "expReturnPct": 3.0, "riskPct": 13, "color": "#B4694A" },
+    { "key": "jpStock", "name": "個別株（日本株式）",   "targetPct": 25, "expReturnPct": 7.0, "riskPct": 23, "color": "#8A2A35" }
+  ],
+  "assumptionsNote": "期待リターンは各クラスの長期想定（年率・税費用控除前の概算）。加重平均で約5.0%になるよう設計。リスク(σ)は過去実績ベースの概算で、クラス間の相関(株式と債券・金の低相関)によりポートフォリオ全体のリスクは単純加重平均より低くなる想定。数値は data/portfolio.json を編集して調整可能。",
+  "products": [
+    {
+      "key": "allcountry",
+      "name": "eMAXIS Slim 全世界株式（オール・カントリー）",
+      "kind": "fund",
+      "classKey": "gEq",
+      "isin": "JP90C000H1T1",
+      "assocCode": "0331418A",
+      "feePct": 0.05775,
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "sp500",
+      "name": "eMAXIS Slim 米国株式（S&P500）",
+      "kind": "fund",
+      "classKey": "usEq",
+      "isin": "JP90C000GKC6",
+      "assocCode": "03311187",
+      "feePct": 0.09372,
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "dmbond",
+      "name": "eMAXIS Slim 先進国債券インデックス（除く日本）",
+      "kind": "fund",
+      "classKey": "dmBond",
+      "isin": "JP90C000END3",
+      "assocCode": "0331A172",
+      "feePct": 0.154,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "jpbond",
+      "name": "eMAXIS Slim 国内債券インデックス",
+      "kind": "fund",
+      "classKey": "jpBond",
+      "isin": "JP90C000ENB7",
+      "assocCode": "03318172",
+      "feePct": 0.132,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "gold",
+      "name": "SBI・iシェアーズ・ゴールドファンド（為替ヘッジなし）",
+      "kind": "fund",
+      "classKey": "gold",
+      "isin": "JP90C000PLM4",
+      "assocCode": "8931A236",
+      "feePct": 0.1838,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    }
+  ],
+  "holdings": [],
+  "nisa": {
+    "annualTsumitateLimit": 1200000,
+    "annualGrowthLimit": 2400000,
+    "lifetimeLimit": 18000000,
+    "usedThisYear": { "year": 2026, "tsumitate": 0, "growth": 0 },
+    "usedLifetime": 0
+  },
+  "history": [],
+  "alerts": [],
+  "aiLog": [
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "ポートフォリオ運用システムを初期構築。目標年率5.0%・投信75%（うちNISA優先）・個別株25%以下の基本配分を設定。保有の登録待ち。"
+    }
+  ]
+}
