@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "lastUpdated": null,
+  "policy": {
+    "targetAnnualReturnPct": 5.0,
+    "rebalanceBandPct": 3.0,
+    "regularRebalanceMonths": [1, 7],
+    "maxStockWeightPct": 30.0,
+    "minFundWeightPct": 70.0,
+    "rules": [
+      "レバレッジ・信用取引はしない",
+      "よくわからない産業の銘柄は買わない",
+      "パッシブ（インデックス）商品を中心に、徐々にグロース割合を増やす",
+      "購入資産の7割は投資信託（NISA枠をフルに使い、不足分は低コスト商品を特定口座で）、個別株は3割以下",
+      "基本配分から3%超ズレたらリバランス（原則は毎月の積立配分で調整し、売却は最小限）",
+      "リバランスの定期チェックは半年に1回（1月・7月）",
+      "基本ポートフォリオは数年単位で維持（リスク許容度か市場構造が変化した時のみ見直す）"
+    ],
+    "policySource": "Google スプレッドシート「投資ルール」タブ（10xFM8eo8LNaj1oZL4JX_vPGQWS8jg-SX6jSq2fWJaB0）"
+  },
+  "assetClasses": [
+    { "key": "gEq",     "name": "全世界株式",           "targetPct": 35, "expReturnPct": 5.5, "riskPct": 17, "color": "#2E5E4E" },
+    { "key": "usEq",    "name": "米国株式",             "targetPct": 10, "expReturnPct": 6.5, "riskPct": 18, "color": "#3A6EA5" },
+    { "key": "dmBond",  "name": "先進国債券",           "targetPct": 15, "expReturnPct": 2.5, "riskPct": 9,  "color": "#54628C" },
+    { "key": "jpBond",  "name": "国内債券",             "targetPct": 5,  "expReturnPct": 0.7, "riskPct": 2,  "color": "#7A5C2E" },
+    { "key": "gold",    "name": "金",                   "targetPct": 10, "expReturnPct": 3.0, "riskPct": 13, "color": "#B4694A" },
+    { "key": "jpStock", "name": "日本株式（高配当株・個別株）", "targetPct": 25, "expReturnPct": 7.0, "riskPct": 23, "color": "#8A2A35" }
+  ],
+  "assumptionsNote": "期待リターンは各クラスの長期想定（年率・税費用控除前の概算）。加重平均で約5.0%になるよう設計。リスク(σ)は過去実績ベースの概算で、クラス間の相関(株式と債券・金の低相関)によりポートフォリオ全体のリスクは単純加重平均より低くなる想定。数値は data/portfolio.json を編集して調整可能。",
+  "products": [
+    {
+      "key": "allcountry",
+      "name": "eMAXIS Slim 全世界株式（オール・カントリー）",
+      "kind": "fund",
+      "classKey": "gEq",
+      "isin": "JP90C000H1T1",
+      "assocCode": "0331418A",
+      "feePct": 0.05775,
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "sp500",
+      "name": "eMAXIS Slim 米国株式（S&P500）",
+      "kind": "fund",
+      "classKey": "usEq",
+      "isin": "JP90C000GKC6",
+      "assocCode": "03311187",
+      "feePct": 0.09372,
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "dmbond",
+      "name": "eMAXIS Slim 先進国債券インデックス（除く日本）",
+      "kind": "fund",
+      "classKey": "dmBond",
+      "isin": "JP90C000END3",
+      "assocCode": "0331A172",
+      "feePct": 0.154,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "jpbond",
+      "name": "eMAXIS Slim 国内債券インデックス",
+      "kind": "fund",
+      "classKey": "jpBond",
+      "isin": "JP90C000ENB7",
+      "assocCode": "03318172",
+      "feePct": 0.132,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "gold",
+      "name": "SBI・iシェアーズ・ゴールドファンド（為替ヘッジなし）",
+      "kind": "fund",
+      "classKey": "gold",
+      "isin": "JP90C000PLM4",
+      "assocCode": "8931A236",
+      "feePct": 0.1838,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "rakuten225",
+      "name": "楽天・プラス・日経225インデックス・ファンド",
+      "kind": "fund",
+      "classKey": "jpStock",
+      "isin": "JP90C000QAU8",
+      "assocCode": "9I31223C",
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "tracers_nk50hd",
+      "name": "Tracers 日経平均高配当株50インデックス（奇数月分配型）",
+      "kind": "fund",
+      "classKey": "jpStock",
+      "isin": "JP90C000QF97",
+      "assocCode": "02313241",
+      "feePct": 0.10725,
+      "nisa": "growth",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "jgb191",
+      "name": "個人向け国債 変動10年 第191回",
+      "kind": "manual",
+      "classKey": "jpBond",
+      "nisa": "none",
+      "note": "額面評価。保有側の valueOverride で管理（変動10年は元本割れなし）",
+      "price": null,
+      "priceDate": null
+    },
+    {
+      "key": "gold_physical",
+      "name": "金（現物・グラム建て）",
+      "kind": "gold_jpyg",
+      "classKey": "gold",
+      "nisa": "none",
+      "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035×1.1（消費税相当）の概算買取価格",
+      "price": null,
+      "priceDate": null
+    }
+  ],
+  "holdings": [
+    { "productKey": "rakuten225", "account": "NISAつみたて", "units": 146583, "cost": 300000, "note": "申告評価額311,240円（2026-07-15）→ 含意NAV約21,233円/万口。初回の実価格取得時に整合を自動検証" },
+    { "productKey": "tracers_nk50hd", "account": "NISA成長", "units": 211886, "cost": 322850 },
+    { "productKey": "dmbond", "account": "NISA成長", "units": 146038, "cost": 225001, "note": "申告評価額229,470円と整合（NAV約15,713円/万口）。初回申告の『＋145,330口』は二重計上の可能性が高く未登録（alerts verify:dmbond 参照）" },
+    { "productKey": "sp500", "account": "NISA成長", "units": 61154, "cost": 243447 },
+    { "productKey": "jgb191", "account": "課税", "valueOverride": 300000, "cost": 300000 },
+    { "productKey": "gold_physical", "account": "現物（純金積立等）", "grams": 4.75509, "cost": 124367 }
+  ],
+  "nisa": {
+    "annualTsumitateLimit": 1200000,
+    "annualGrowthLimit": 2400000,
+    "lifetimeLimit": 18000000,
+    "usedThisYear": { "year": 2026, "tsumitate": 0, "growth": 0 },
+    "usedLifetime": 1091298,
+    "note": "usedLifetime はNISA口座内保有の取得額合計（つみたて30万＋成長79.1万）。2026年の年間枠消化額は購入時期の情報待ちで未設定"
+  },
+  "history": [],
+  "alerts": [
+    {
+      "id": "verify:dmbond",
+      "date": "2026-07-15",
+      "level": "info",
+      "status": "open",
+      "message": "【要確認】先進国債券は初回申告で『146,038口＋145,330口』でしたが、評価額229,470円は146,038口とのみ整合するため146,038口で登録しています。もう1ロット（145,330口・別口座）が実在する場合はClaudeに伝えてください。初回の実価格取得時にも自動検証されます。"
+    },
+    {
+      "id": "verify:rakuten225",
+      "date": "2026-07-15",
+      "level": "info",
+      "status": "done",
+      "closedDate": "2026-07-15",
+      "message": "【解決済み】楽天・プラス・日経225の口数 146,583口 が登録され、自動評価に切替済み。"
+    }
+  ],
+  "aiLog": [
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "ポートフォリオ運用システムを初期構築。目標年率5.0%・投信75%（うちNISA優先）・個別株25%以下の基本配分を設定。保有の登録待ち。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "ユーザー申告に基づき保有6件を登録: Tracers日経平均高配当株50 211,886口／eMAXIS Slim先進国債券 291,368口（2ロット）／eMAXIS Slim S&P500 61,154口／個人向け国債変動10年第191回 30万円／金現物 4.75509g。取得額と口座区分（NISA/課税）は未登録のため、損益・NISA枠表示は登録待ち。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "口座区分と取得額を登録: 楽天・プラス・日経225（NISAつみたて、取得30万）を新規追加／Tracers=NISA成長 取得322,850円／先進国債券=NISA成長 取得225,001円（口数は評価額と整合する146,038口に訂正、＋145,330口は要確認）／S&P500=NISA成長 取得243,447円／国債・金現物=課税。NISA生涯枠消化 約109.1万円を記録。申告評価額合計 約154.7万円・評価損益 約+31,329円。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "楽天・プラス・日経225の口数 146,583口 を登録し、評価額固定から自動評価に切替。これで全保有が自動評価対象（国債の額面評価を除く）になった。"
+    }
+  ]
+}

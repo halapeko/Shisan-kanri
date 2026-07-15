@@ -1,0 +1,39 @@
+name: Update portfolio data
+
+on:
+  schedule:
+    # JST 平日 06:30（前営業日の基準価額・終値が反映された後）
+    - cron: "30 21 * * 0-4"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-portfolio
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Update prices and alerts
+        run: node scripts/update_portfolio.mjs
+
+      - name: Commit & push
+        run: |
+          if git diff --quiet -- data/portfolio.json; then
+            echo "変更なし"
+            exit 0
+          fi
+          git config user.name "portfolio-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/portfolio.json
+          git commit -m "chore: ポートフォリオ価格・アラート自動更新 ($(date -u +%F))"
+          git push
