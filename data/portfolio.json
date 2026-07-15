@@ -1,12 +1,15 @@
 {
   "version": 1,
-  "lastUpdated": null,
+  "lastUpdated": "2026-07-15T07:40:18.675Z",
   "policy": {
-    "targetAnnualReturnPct": 5.0,
-    "rebalanceBandPct": 3.0,
-    "regularRebalanceMonths": [1, 7],
-    "maxStockWeightPct": 30.0,
-    "minFundWeightPct": 70.0,
+    "targetAnnualReturnPct": 5,
+    "rebalanceBandPct": 3,
+    "regularRebalanceMonths": [
+      1,
+      7
+    ],
+    "maxStockWeightPct": 30,
+    "minFundWeightPct": 70,
     "rules": [
       "レバレッジ・信用取引はしない",
       "よくわからない産業の銘柄は買わない",
@@ -19,12 +22,54 @@
     "policySource": "Google スプレッドシート「投資ルール」タブ（10xFM8eo8LNaj1oZL4JX_vPGQWS8jg-SX6jSq2fWJaB0）"
   },
   "assetClasses": [
-    { "key": "gEq",     "name": "全世界株式",           "targetPct": 35, "expReturnPct": 5.5, "riskPct": 17, "color": "#2E5E4E" },
-    { "key": "usEq",    "name": "米国株式",             "targetPct": 10, "expReturnPct": 6.5, "riskPct": 18, "color": "#3A6EA5" },
-    { "key": "dmBond",  "name": "先進国債券",           "targetPct": 15, "expReturnPct": 2.5, "riskPct": 9,  "color": "#54628C" },
-    { "key": "jpBond",  "name": "国内債券",             "targetPct": 5,  "expReturnPct": 0.7, "riskPct": 2,  "color": "#7A5C2E" },
-    { "key": "gold",    "name": "金",                   "targetPct": 10, "expReturnPct": 3.0, "riskPct": 13, "color": "#B4694A" },
-    { "key": "jpStock", "name": "日本株式（高配当株・個別株）", "targetPct": 25, "expReturnPct": 7.0, "riskPct": 23, "color": "#8A2A35" }
+    {
+      "key": "gEq",
+      "name": "全世界株式",
+      "targetPct": 35,
+      "expReturnPct": 5.5,
+      "riskPct": 17,
+      "color": "#2E5E4E"
+    },
+    {
+      "key": "usEq",
+      "name": "米国株式",
+      "targetPct": 10,
+      "expReturnPct": 6.5,
+      "riskPct": 18,
+      "color": "#3A6EA5"
+    },
+    {
+      "key": "dmBond",
+      "name": "先進国債券",
+      "targetPct": 15,
+      "expReturnPct": 2.5,
+      "riskPct": 9,
+      "color": "#54628C"
+    },
+    {
+      "key": "jpBond",
+      "name": "国内債券",
+      "targetPct": 5,
+      "expReturnPct": 0.7,
+      "riskPct": 2,
+      "color": "#7A5C2E"
+    },
+    {
+      "key": "gold",
+      "name": "金",
+      "targetPct": 10,
+      "expReturnPct": 3,
+      "riskPct": 13,
+      "color": "#B4694A"
+    },
+    {
+      "key": "jpStock",
+      "name": "日本株式（高配当株・個別株）",
+      "targetPct": 25,
+      "expReturnPct": 7,
+      "riskPct": 23,
+      "color": "#8A2A35"
+    }
   ],
   "assumptionsNote": "期待リターンは各クラスの長期想定（年率・税費用控除前の概算）。加重平均で約5.0%になるよう設計。リスク(σ)は過去実績ベースの概算で、クラス間の相関(株式と債券・金の低相関)によりポートフォリオ全体のリスクは単純加重平均より低くなる想定。数値は data/portfolio.json を編集して調整可能。",
   "products": [
@@ -37,8 +82,8 @@
       "assocCode": "0331418A",
       "feePct": 0.05775,
       "nisa": "tsumitate",
-      "price": null,
-      "priceDate": null
+      "price": 38197,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "sp500",
@@ -49,8 +94,8 @@
       "assocCode": "03311187",
       "feePct": 0.09372,
       "nisa": "tsumitate",
-      "price": null,
-      "priceDate": null
+      "price": 44848,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "dmbond",
@@ -61,8 +106,8 @@
       "assocCode": "0331A172",
       "feePct": 0.154,
       "nisa": "growth",
-      "price": null,
-      "priceDate": null
+      "price": 15713,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "jpbond",
@@ -73,8 +118,8 @@
       "assocCode": "03318172",
       "feePct": 0.132,
       "nisa": "growth",
-      "price": null,
-      "priceDate": null
+      "price": 8543,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "gold",
@@ -85,8 +130,8 @@
       "assocCode": "8931A236",
       "feePct": 0.1838,
       "nisa": "growth",
-      "price": null,
-      "priceDate": null
+      "price": 23367,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "rakuten225",
@@ -96,8 +141,8 @@
       "isin": "JP90C000QAU8",
       "assocCode": "9I31223C",
       "nisa": "tsumitate",
-      "price": null,
-      "priceDate": null
+      "price": 21233,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "tracers_nk50hd",
@@ -108,8 +153,8 @@
       "assocCode": "02313241",
       "feePct": 0.10725,
       "nisa": "growth",
-      "price": null,
-      "priceDate": null
+      "price": 15679,
+      "priceDate": "2026-07-14"
     },
     {
       "key": "jgb191",
@@ -128,27 +173,76 @@
       "classKey": "gold",
       "nisa": "none",
       "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035×1.1（消費税相当）の概算買取価格",
-      "price": null,
-      "priceDate": null
+      "price": 23120.08,
+      "priceDate": "2026-07-15"
     }
   ],
   "holdings": [
-    { "productKey": "rakuten225", "account": "NISAつみたて", "units": 146583, "cost": 300000, "note": "申告評価額311,240円（2026-07-15）→ 含意NAV約21,233円/万口。初回の実価格取得時に整合を自動検証" },
-    { "productKey": "tracers_nk50hd", "account": "NISA成長", "units": 211886, "cost": 322850 },
-    { "productKey": "dmbond", "account": "NISA成長", "units": 146038, "cost": 225001, "note": "申告評価額229,470円と整合（NAV約15,713円/万口）。初回申告の『＋145,330口』は二重計上の可能性が高く未登録（alerts verify:dmbond 参照）" },
-    { "productKey": "sp500", "account": "NISA成長", "units": 61154, "cost": 243447 },
-    { "productKey": "jgb191", "account": "課税", "valueOverride": 300000, "cost": 300000 },
-    { "productKey": "gold_physical", "account": "現物（純金積立等）", "grams": 4.75509, "cost": 124367 }
+    {
+      "productKey": "rakuten225",
+      "account": "NISAつみたて",
+      "units": 146583,
+      "cost": 300000,
+      "note": "申告評価額311,240円（2026-07-15）→ 含意NAV約21,233円/万口。初回の実価格取得時に整合を自動検証"
+    },
+    {
+      "productKey": "tracers_nk50hd",
+      "account": "NISA成長",
+      "units": 211886,
+      "cost": 322850
+    },
+    {
+      "productKey": "dmbond",
+      "account": "NISA成長",
+      "units": 146038,
+      "cost": 225001,
+      "note": "申告評価額229,470円と整合（NAV約15,713円/万口）。初回申告の『＋145,330口』は二重計上の可能性が高く未登録（alerts verify:dmbond 参照）"
+    },
+    {
+      "productKey": "sp500",
+      "account": "NISA成長",
+      "units": 61154,
+      "cost": 243447
+    },
+    {
+      "productKey": "jgb191",
+      "account": "課税",
+      "valueOverride": 300000,
+      "cost": 300000
+    },
+    {
+      "productKey": "gold_physical",
+      "account": "現物（純金積立等）",
+      "grams": 4.75509,
+      "cost": 124367
+    }
   ],
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
     "lifetimeLimit": 18000000,
-    "usedThisYear": { "year": 2026, "tsumitate": 0, "growth": 0 },
+    "usedThisYear": {
+      "year": 2026,
+      "tsumitate": 0,
+      "growth": 0
+    },
     "usedLifetime": 1091298,
     "note": "usedLifetime はNISA口座内保有の取得額合計（つみたて30万＋成長79.1万）。2026年の年間枠消化額は購入時期の情報待ちで未設定"
   },
-  "history": [],
+  "history": [
+    {
+      "date": "2026-07-15",
+      "total": 1557127,
+      "cost": 1515665,
+      "byClass": {
+        "jpStock": 643456,
+        "dmBond": 229470,
+        "usEq": 274263,
+        "jpBond": 300000,
+        "gold": 109938
+      }
+    }
+  ],
   "alerts": [
     {
       "id": "verify:dmbond",
@@ -164,6 +258,41 @@
       "status": "done",
       "closedDate": "2026-07-15",
       "message": "【解決済み】楽天・プラス・日経225の口数 146,583口 が登録され、自動評価に切替済み。"
+    },
+    {
+      "id": "drift:gEq",
+      "date": "2026-07-15",
+      "level": "action",
+      "message": "【リバランス】全世界株式 が基本配分 35% に対し 0.0%（-35.0pt）。約 ¥544,994 の買い増し（積立配分の増額）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
+      "status": "open"
+    },
+    {
+      "id": "drift:usEq",
+      "date": "2026-07-15",
+      "level": "action",
+      "message": "【リバランス】米国株式 が基本配分 10% に対し 17.6%（+7.6pt）。約 ¥118,551 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
+      "status": "open"
+    },
+    {
+      "id": "drift:jpBond",
+      "date": "2026-07-15",
+      "level": "action",
+      "message": "【リバランス】国内債券 が基本配分 5% に対し 19.3%（+14.3pt）。約 ¥222,144 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
+      "status": "open"
+    },
+    {
+      "id": "drift:jpStock",
+      "date": "2026-07-15",
+      "level": "action",
+      "message": "【リバランス】日本株式（高配当株・個別株） が基本配分 25% に対し 41.3%（+16.3pt）。約 ¥254,174 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
+      "status": "open"
+    },
+    {
+      "id": "regular-check:2026-07",
+      "date": "2026-07-15",
+      "level": "info",
+      "status": "open",
+      "message": "【定期点検】半年に1回のリバランス点検月です（2026-07）。配分・リスク許容度・NISA枠の消化状況を確認してください。"
     }
   ],
   "aiLog": [
@@ -186,6 +315,11 @@
       "date": "2026-07-15",
       "actor": "claude",
       "message": "楽天・プラス・日経225の口数 146,583口 を登録し、評価額固定から自動評価に切替。これで全保有が自動評価対象（国債の額面評価を除く）になった。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "github-actions",
+      "message": "価格を自動更新（成功 8 / 失敗 0）。評価額合計 ¥1,557,127。未対応アラート 4 件。"
     }
   ]
 }
