@@ -89,6 +89,17 @@
       "priceDate": null
     },
     {
+      "key": "rakuten225",
+      "name": "楽天・プラス・日経225インデックス・ファンド",
+      "kind": "fund",
+      "classKey": "jpStock",
+      "isin": "JP90C000QAU8",
+      "assocCode": "9I31223C",
+      "nisa": "tsumitate",
+      "price": null,
+      "priceDate": null
+    },
+    {
       "key": "tracers_nk50hd",
       "name": "Tracers 日経平均高配当株50インデックス（奇数月分配型）",
       "kind": "fund",
@@ -122,22 +133,38 @@
     }
   ],
   "holdings": [
-    { "productKey": "tracers_nk50hd", "account": "未確認", "units": 211886 },
-    { "productKey": "dmbond", "account": "未確認（ロット1）", "units": 146038 },
-    { "productKey": "dmbond", "account": "未確認（ロット2）", "units": 145330 },
-    { "productKey": "sp500", "account": "未確認", "units": 61154 },
-    { "productKey": "jgb191", "account": "課税", "valueOverride": 300000 },
-    { "productKey": "gold_physical", "account": "純金積立等", "grams": 4.75509 }
+    { "productKey": "rakuten225", "account": "NISAつみたて", "valueOverride": 311240, "cost": 300000, "note": "口数未登録のため申告評価額（2026-07-15時点）で一時固定。口数が判明したら units に切替えて自動評価にする" },
+    { "productKey": "tracers_nk50hd", "account": "NISA成長", "units": 211886, "cost": 322850 },
+    { "productKey": "dmbond", "account": "NISA成長", "units": 146038, "cost": 225001, "note": "申告評価額229,470円と整合（NAV約15,713円/万口）。初回申告の『＋145,330口』は二重計上の可能性が高く未登録（alerts verify:dmbond 参照）" },
+    { "productKey": "sp500", "account": "NISA成長", "units": 61154, "cost": 243447 },
+    { "productKey": "jgb191", "account": "課税", "valueOverride": 300000, "cost": 300000 },
+    { "productKey": "gold_physical", "account": "現物（純金積立等）", "grams": 4.75509, "cost": 124367 }
   ],
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
     "lifetimeLimit": 18000000,
     "usedThisYear": { "year": 2026, "tsumitate": 0, "growth": 0 },
-    "usedLifetime": 0
+    "usedLifetime": 1091298,
+    "note": "usedLifetime はNISA口座内保有の取得額合計（つみたて30万＋成長79.1万）。2026年の年間枠消化額は購入時期の情報待ちで未設定"
   },
   "history": [],
-  "alerts": [],
+  "alerts": [
+    {
+      "id": "verify:dmbond",
+      "date": "2026-07-15",
+      "level": "info",
+      "status": "open",
+      "message": "【要確認】先進国債券は初回申告で『146,038口＋145,330口』でしたが、評価額229,470円は146,038口とのみ整合するため146,038口で登録しています。もう1ロット（145,330口・別口座）が実在する場合はClaudeに伝えてください。初回の実価格取得時にも自動検証されます。"
+    },
+    {
+      "id": "verify:rakuten225",
+      "date": "2026-07-15",
+      "level": "info",
+      "status": "open",
+      "message": "【要確認】楽天・プラス・日経225は口数が未登録のため、申告評価額311,240円で一時固定表示中です。保有口数を伝えてもらえれば毎朝の自動評価に切替わります。"
+    }
+  ],
   "aiLog": [
     {
       "date": "2026-07-15",
@@ -148,6 +175,11 @@
       "date": "2026-07-15",
       "actor": "claude",
       "message": "ユーザー申告に基づき保有6件を登録: Tracers日経平均高配当株50 211,886口／eMAXIS Slim先進国債券 291,368口（2ロット）／eMAXIS Slim S&P500 61,154口／個人向け国債変動10年第191回 30万円／金現物 4.75509g。取得額と口座区分（NISA/課税）は未登録のため、損益・NISA枠表示は登録待ち。"
+    },
+    {
+      "date": "2026-07-15",
+      "actor": "claude",
+      "message": "口座区分と取得額を登録: 楽天・プラス・日経225（NISAつみたて、取得30万）を新規追加／Tracers=NISA成長 取得322,850円／先進国債券=NISA成長 取得225,001円（口数は評価額と整合する146,038口に訂正、＋145,330口は要確認）／S&P500=NISA成長 取得243,447円／国債・金現物=課税。NISA生涯枠消化 約109.1万円を記録。申告評価額合計 約154.7万円・評価損益 約+31,329円。"
     }
   ]
 }
