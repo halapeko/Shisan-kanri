@@ -91,12 +91,37 @@ for (const prod of p.products) {
   }
 }
 
+/* ---------- 自動積立の推定反映 ----------
+ * 毎月の積立は買付日の基準価額で口数を推定して保有に加え、入出金(flow)として記録する。
+ * 次の楽天CSV取り込みで実数に置き換わる。 */
+let recurringFlow = 0;
+for (const r of p.recurring || []) {
+  const ym = today.slice(0, 7);
+  if (r.lastApplied >= ym || Number(today.slice(8, 10)) < r.day) continue;
+  const prod = productOf(p, r.productKey);
+  if (!prod || !Number.isFinite(prod.price)) { log(`積立の推定反映をスキップ（価格なし）: ${r.productKey}`); continue; }
+  let h = p.holdings.find((x) => x.productKey === r.productKey && x.account === r.account);
+  if (!h) { h = { productKey: r.productKey, account: r.account, units: 0, cost: 0 }; p.holdings.push(h); }
+  const units = Math.floor((r.yen / prod.price) * 10000);
+  h.units = (h.units || 0) + units;
+  h.cost = (h.cost || 0) + r.yen;
+  h.estimated = true;
+  r.lastApplied = ym;
+  recurringFlow += r.yen;
+  if (p.nisa?.usedThisYear && r.account.startsWith("NISA") && p.nisa.usedThisYear.year === Number(today.slice(0, 4))) {
+    const k = r.account === "NISAつみたて" ? "tsumitate" : "growth";
+    if (p.nisa.usedThisYear[k] != null) p.nisa.usedThisYear[k] += r.yen;
+  }
+  if (p.nisa && r.account.startsWith("NISA") && p.nisa.usedLifetime != null) p.nisa.usedLifetime += r.yen;
+  log(`積立を推定反映: ${prod.name} ${r.yen}円 → ${units}口（${r.account}）`);
+}
+
 /* ---------- 評価 ---------- */
 const s = summarize(p);
 if (s.complete && s.total > 0) {
   // flow は入出金（CSV取り込み時に記録）。同日の記録があれば引き継ぐ
   const prev = (p.history || []).find((x) => x.date === today);
-  const snap = { date: today, total: Math.round(s.total), cost: Math.round(s.cost), flow: prev?.flow || 0, byClass: {} };
+  const snap = { date: today, total: Math.round(s.total), cost: Math.round(s.cost), flow: (prev?.flow || 0) + recurringFlow, byClass: {} };
   for (const [k, v] of Object.entries(s.byClass)) snap.byClass[k] = Math.round(v);
   p.history = (p.history || []).filter((x) => x.date !== today);
   p.history.push(snap);
@@ -127,14 +152,19 @@ function raise(id, level, message) {
 const yen = (n) => (n < 0 ? "-¥" : "¥") + Math.abs(Math.round(n)).toLocaleString("ja-JP");
 const pol = p.policy;
 const openSteps = (p.plan?.steps || []).filter((x) => x.status !== "done");
+const STOCK_STEPS = ["stocksHaveThesis", "plannedSellsDone"];
 const stepsForClass = (ck) =>
-  openSteps.filter((x) => x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck);
+  openSteps.filter((x) =>
+    (x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck) ||
+    x.auto?.classKey === ck ||
+    (ck === "stock" && STOCK_STEPS.includes(x.auto?.type)));
 
 if (s.complete && s.total > 0) {
   const T = s.total;
 
   // R8 ドリフト
   for (const c of p.assetClasses) {
+    if (c.excludeFromDrift) continue;
     const w = ((s.byClass[c.key] || 0) / T) * 100;
     const d = w - c.targetPct;
     if (Math.abs(d) <= pol.rebalanceBandPct) continue;
@@ -161,7 +191,7 @@ if (s.complete && s.total > 0) {
   }
   for (const prod of p.products.filter((x) => x.kind === "stock" && held.has(x.key))) {
     const w = ((s.byProduct[prod.key] || 0) / T) * 100;
-    if (w > pol.maxSingleStockPct)
+    if (pol.maxSingleStockPct && w > pol.maxSingleStockPct)
       raise(`cap:single:${prod.key}`, "action", `【ルールR2】${prod.name} が1銘柄で ${w.toFixed(1)}%（上限 ${pol.maxSingleStockPct}%）。`);
   }
 
@@ -172,29 +202,32 @@ if (s.complete && s.total > 0) {
     const v = holdingValue(p, h);
     const pct = ((v - h.cost) / h.cost) * 100;
     if (pct > -pol.stockReviewDrawdownPct) continue;
-    const planned = prod.planned === "sell";
+    const planned = prod.planned === "sell" || prod.planned === "review";
     raise(`review:dd:${prod.key}`, planned ? "info" : "warn",
       `【ルールR3】${prod.name} が取得価格から ${pct.toFixed(1)}%（${yen(v - h.cost)}）。` +
-      (planned ? "移行プランで売却予定。" : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
+      (planned ? (prod.planned === "sell" ? "移行プランで売却予定。" : "移行プランで残すかどうか選別中（s07）。") : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
         (prod.exitRule ? `撤退条件:「${prod.exitRule}」` : "撤退条件が未記録。")));
   }
 
   // R9 安全資産の下限
-  const safeW = ((s.byClass.safe || 0) / T) * 100;
+  const safeW = (((s.byClass.safe || 0) + (s.byClass.cash || 0)) / T) * 100;
   if (safeW < pol.minSafeWeightPct)
-    raise("floor:safe", "warn", `【ルールR9】安全資産が ${safeW.toFixed(1)}%（下限 ${pol.minSafeWeightPct}%）。個人向け国債の購入を検討。`);
+    raise("floor:safe", "warn", `【ルールR9】安全資産（国債・現金）が ${safeW.toFixed(1)}%（下限 ${pol.minSafeWeightPct}%）。個人向け国債の購入を検討。`);
+  const liqW = ((s.byClass.cash || 0) / T) * 100;
+  if (pol.minLiquidPct && liqW < pol.minLiquidPct)
+    raise("floor:liquid", "info", `【ルールR9】すぐ動かせる現金等が ${liqW.toFixed(1)}%（目安 ${pol.minLiquidPct}%以上）。個人向け国債は発行後1年は換金できないため、急な出費や下落時の買い増し用に現金を残す。`);
 
   // R4 年末の損出し
   const month = Number(today.slice(5, 7));
   if ((pol.taxHarvestMonths || []).includes(month)) {
     const losers = p.holdings
-      .filter((h) => h.account === "特定" && h.cost && !["gold_jpyg", "manual"].includes(productOf(p, h.productKey)?.kind))
+      .filter((h) => h.account === "特定" && h.cost && !["gold_jpyg", "manual"].includes(productOf(p, h.productKey)?.kind) && !productOf(p, h.productKey)?.leveraged)
       .map((h) => ({ h, pl: holdingValue(p, h) - h.cost }))
       .filter((x) => x.pl < -1000);
     if (losers.length) {
       const sum = losers.reduce((a, x) => a + x.pl, 0);
       raise(`tax:harvest:${today.slice(0, 4)}`, month === 12 ? "warn" : "info",
-        `【ルールR4】特定口座に含み損 ${yen(sum)}（${losers.map((x) => productOf(p, x.h.productKey).name).join("、")}）。年内（受渡ベース）に確定すれば、同年の実現益と相殺して約 ${yen(-sum * 0.20315)} の節税。売って買い戻せば保有は維持できる。`);
+        `【ルールR4】特定口座に含み損 ${yen(sum)}（${losers.map((x) => productOf(p, x.h.productKey).name).join("、")}）。今年の特定口座に実現益（配当を含む）があれば、年内（受渡ベース）に確定して最大 約${yen(-sum * 0.20315)} の税金が戻る。残したい銘柄は売って翌営業日以降に買い戻せる。国内株は12/28約定、米国株・海外資産の投信は12月中旬が目安。通算しきれない分は確定申告で3年繰越。`);
     }
   }
 }
@@ -204,7 +237,7 @@ for (const st of openSteps) {
   if (!st.due) continue;
   const days = (new Date(st.due) - new Date(today)) / 86400e3;
   if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
-  else if (days <= 7) raise(`plan:soon:${st.id}`, "info", `【移行プラン・今週】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
+  else if (days <= 7) raise(`plan:soon:${st.id}`, st.urgent ? "action" : "info", `【移行プラン・今週】${st.title}（期限 ${st.due}、あと${Math.round(days)}日）。${st.detail || ""}`);
 }
 
 // 週次レビューの停止検知

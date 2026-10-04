@@ -172,6 +172,10 @@
   .rules{list-style:none;display:grid;gap:4px;font-size:13px}
   .rules li{display:grid;grid-template-columns:40px 1fr;gap:6px;padding:4px 0;border-bottom:1px dashed var(--rule)}
   .rules .rid{font-weight:600;color:var(--ai)}
+  table.opts td,table.opts th{font-size:12.5px}
+  table.opts tr.active td{background:#F3F6F9}
+  .decs{list-style:none;display:grid;gap:6px;margin-top:12px;font-size:13px}
+  .decs li{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start}
   .pf-row.nisa{grid-template-columns:180px 1fr 210px}
   .add-grid.planner{grid-template-columns:220px auto 1fr}
   .pf-kpis{grid-template-columns:repeat(3,1fr)}
@@ -956,13 +960,13 @@ renderInstOptions();
 renderAll();
 initCloud();
 </script>
-<script>
+<script type="module">
 /* =========================================================
    ポートフォリオ運用（AI管理）— 再構築PJ v2
    データ源: data/portfolio.json（GitHub Actions と Claude が自動更新）
    このブロックは表示専用。売買の記録は楽天証券の保有一覧をClaudeへのチャットに貼って依頼する。
    ========================================================= */
-"use strict";
+import { portfolioStats, effectiveWeights } from "./scripts/lib.mjs";
 (function(){
 const root = document.getElementById("pf-root");
 const DATA_URL = "data/portfolio.json";
@@ -1011,25 +1015,12 @@ function modifiedDietz(history, start){
   return { periodDays:T, r, annualized: T >= 60 ? Math.pow(1+r, 365/T) - 1 : null };
 }
 
-/* 期待リターンとリスク（σ）。weights はクラス→比率(0-1) */
-function portfolioStats(p, weights, levDrag){
-  const cls = p.assetClasses || [];
-  const C = p.correlations || {};
-  const corr = (a,b)=> a===b ? 1 : ((C[a]||{})[b] ?? (C[b]||{})[a] ?? 0);
-  let mu = 0, v = 0;
-  cls.forEach(a=>{
-    const wa = weights[a.key]||0; mu += wa*a.expReturnPct;
-    cls.forEach(b=>{ v += wa*(weights[b.key]||0)*a.riskPct*b.riskPct*corr(a.key,b.key); });
-  });
-  return { mu: mu - (levDrag||0), sd: Math.sqrt(Math.max(v,0)) };
-}
-
 function renderPf(p){
   const prodMap = {}; (p.products||[]).forEach(x=> prodMap[x.key]=x);
   const clsMap = {}; (p.assetClasses||[]).forEach(c=> clsMap[c.key]=c);
   const pol = p.policy || {};
   const rows = [];
-  const byClass = {}; let total = 0, cost = 0, stockV = 0, levExtra = 0, levDrag = 0;
+  const byClass = {}; let total = 0, cost = 0, stockV = 0;
   (p.holdings||[]).forEach(h=>{
     const prod = prodMap[h.productKey] || {name:h.productKey};
     const v = holdingValue(p, h, prodMap);
@@ -1039,11 +1030,6 @@ function renderPf(p){
     byClass[ck] = (byClass[ck]||0) + v;
     total += v; cost += (h.cost||0);
     if(prod.kind === "stock") stockV += v;
-    if(prod.leveraged){
-      levExtra += v*(prod.leveraged-1);
-      const s = ((clsMap[ck]||{}).riskPct||18)/100;
-      levDrag += v*(prod.leveraged*prod.leveraged-prod.leveraged)*s*s/2*100;
-    }
   });
   const band = pol.rebalanceBandPct || 3;
   const today = jstToday();
@@ -1071,11 +1057,9 @@ function renderPf(p){
 
   /* --- KPI --- */
   const pl = total - cost, plPct = cost > 0 ? pl/cost*100 : 0;
-  const wCur = {}; Object.keys(byClass).forEach(k=> wCur[k] = total ? byClass[k]/total : 0);
-  if(levExtra){ wCur.jpIdx = (wCur.jpIdx||0) + levExtra/total; wCur.safe = (wCur.safe||0) - levExtra/total; }
-  const sCur = portfolioStats(p, wCur, total ? levDrag/total : 0);
+  const sCur = portfolioStats(p, effectiveWeights(p));
   const wTgt = {}; (p.assetClasses||[]).forEach(c=> wTgt[c.key] = c.targetPct/100);
-  const sTgt = portfolioStats(p, wTgt, 0);
+  const sTgt = portfolioStats(p, wTgt);
   const dz = modifiedDietz(p.history, (p.project||{}).performanceStart);
   const tgtR = pol.targetAnnualReturnPct || 6, rng = pol.targetRangePct || [5,8];
   let realHtml = "—", realCls = "";
@@ -1088,16 +1072,27 @@ function renderPf(p){
     <div class="kpi"><div class="k">証券ポートフォリオ評価額</div><div class="v">${fmtYen(total)}</div></div>
     <div class="kpi"><div class="k">評価損益</div><div class="v ${signClass(pl)}">${fmtSigned(pl)}円<span class="kpi-sub">取得額 ${fmtYen(cost)}・${pct(plPct)}</span></div></div>
     <div class="kpi"><div class="k">実績リターン（目標 年${rng[0]}〜${rng[1]}%）</div><div class="v ${realCls}">${realHtml}</div></div>
-    <div class="kpi"><div class="k">現在の配分の想定</div><div class="v">年${sCur.mu.toFixed(1)}%<span class="kpi-sub">リスクσ ${sCur.sd.toFixed(1)}%</span></div></div>
-    <div class="kpi"><div class="k">基本配分の想定</div><div class="v">年${sTgt.mu.toFixed(1)}%<span class="kpi-sub">リスクσ ${sTgt.sd.toFixed(1)}%（目標 ${pol.targetRiskPct||"—"}%前後）</span></div></div>
+    <div class="kpi"><div class="k">現在の配分の想定（複利）</div><div class="v">年${sCur.geo.toFixed(1)}%<span class="kpi-sub">リスクσ ${sCur.sd.toFixed(1)}%・2008年型 ${sCur.stress.toFixed(0)}%</span></div></div>
+    <div class="kpi"><div class="k">基本配分の想定（複利）</div><div class="v">年${sTgt.geo.toFixed(1)}%<span class="kpi-sub">リスクσ ${sTgt.sd.toFixed(1)}%・2008年型 ${sTgt.stress.toFixed(0)}%</span></div></div>
     <div class="kpi"><div class="k">自動更新</div><div class="v" style="font-size:15px">${updStr}<span class="kpi-sub">USD/JPY ${p.fx && p.fx.USDJPY ? p.fx.USDJPY : "—"}・保有基準日 ${esc(p.holdingsAsOf||"—")}</span></div></div>
   </div>
-  <p class="chart-caption" style="margin-top:8px">想定は ${esc(p.assumptionsNote||"")} リスクσは「1年でこの幅くらい上下するのが普通」という目安（約3年に2年は「想定±σ」に収まる）。</p>`;
+  <p class="chart-caption" style="margin-top:8px">想定は ${esc(p.assumptionsNote||"")} リスクσは「1年でこの幅くらい上下するのが普通」という目安（約3年に2年は「想定±σ」に収まる）。2008年型は株式-45%・円高込みの急落を当てはめた概算。</p>`;
+
+  /* --- 案の比較と判断待ち事項 --- */
+  const optRows = [{name:"現状", st:sCur, cur:true}].concat((p.options||[]).map(o=>{ const w={}; Object.entries(o.targets).forEach(([k,v])=> w[k]=v/100); return {name:o.name, st:portfolioStats(p,w), active:o.id===p.activeOption}; }));
+  const optHtml = (p.options||[]).length ? `<div class="tbl-wrap"><table class="opts">
+    <thead><tr><th>案</th><th>株式</th><th>外貨</th><th>複利の中心</th><th>リスクσ</th><th>単年-10%超</th><th>10年で年5%以上</th><th>2008年型</th></tr></thead>
+    <tbody>${optRows.map(r=> `<tr class="${r.active?"active":""}"><td>${esc(r.name)}${r.active ? ` <span class="tag ${p.activeOptionStatus==="provisional"?"warn":"ok"}">${p.activeOptionStatus==="provisional"?"暫定適用中":"採用中"}</span>` : ""}</td>
+      <td class="num">${r.st.equity.toFixed(0)}%</td><td class="num">${r.st.fx.toFixed(0)}%</td><td class="num"><strong>${r.st.geo.toFixed(1)}%</strong></td><td class="num">${r.st.sd.toFixed(1)}%</td>
+      <td class="num">${(r.st.pLoss10*100).toFixed(0)}%</td><td class="num">${(r.st.p10y5*100).toFixed(0)}%</td><td class="num minus">${r.st.stress.toFixed(0)}%</td></tr>`).join("")}</tbody></table></div>
+    <p class="chart-caption" style="margin-top:6px">再構築はリターンを上げるためではなく、同程度のリターンを小さな下振れで得るためのもの。株式の前提が年4.5%なら案Bは4.4%、7.5%なら6.4%。</p>` : "";
+  const decs = ((p.project||{}).decisions)||[];
+  const decHtml = decs.length ? `<ul class="decs">${decs.map(d=> `<li><span class="st-chip ${d.chosen?"done":"soon"}">${d.chosen?"決定":"判断待ち"}</span><span>${esc(d.title)}：${d.chosen ? "<strong>"+esc(d.chosen)+"</strong>" : esc(d.options.join("／"))}</span></li>`).join("")}</ul>` : "";
 
   /* --- 配分 --- */
-  const allocHtml = (p.assetClasses||[]).map(c=>{
+  const allocHtml = (p.assetClasses||[]).filter(c=> c.targetPct > 0 || (byClass[c.key]||0) > 0).map(c=>{
     const w = total ? (byClass[c.key]||0)/total*100 : 0;
-    const d = w - c.targetPct, over = total > 0 && Math.abs(d) > band;
+    const d = w - c.targetPct, over = total > 0 && Math.abs(d) > band && !c.excludeFromDrift;
     return `<div class="pf-row num">
       <span>${esc(c.name)}</span>
       <div class="bar-track" title="現状 ${w.toFixed(1)}% ／ 基本配分 ${c.targetPct}%">
@@ -1105,14 +1100,14 @@ function renderPf(p){
         <div class="bar-now" style="width:${Math.min(100,w).toFixed(1)}%;background:${esc(c.color||"#3A6EA5")}"></div>
         <div class="bar-tgt" style="left:${c.targetPct}%"></div>
       </div>
-      <span class="drift-badge ${over?"over":""}">${w.toFixed(1)}% / 基本${c.targetPct}%（${pt(d)}）</span>
+      <span class="drift-badge ${over?"over":""}">${c.excludeFromDrift ? w.toFixed(1)+"%（配分判定の対象外）" : `${w.toFixed(1)}% / 基本${c.targetPct}%（${pt(d)}）`}</span>
     </div>`;
   }).join("");
   const stockW = total ? stockV/total*100 : 0;
   const ruleChips = `<div class="chips">
-    <span class="chip-r ${stockW > (pol.maxStockWeightPct||15) ? "ng" : "ok"}">個別株 ${stockW.toFixed(1)}% / 上限${pol.maxStockWeightPct||15}%</span>
+    <span class="chip-r ${stockW > (pol.maxStockWeightPct||30) ? "ng" : "ok"}">個別株 ${stockW.toFixed(1)}% / 上限${pol.maxStockWeightPct||30}%${pol.proposedMaxStockWeightPct ? "（提案"+pol.proposedMaxStockWeightPct+"%）" : ""}</span>
     <span class="chip-r ${(p.products||[]).some(x=> x.leveraged && rows.some(r=> r.h.productKey===x.key)) ? "ng" : "ok"}">レバレッジ商品 ${(p.products||[]).some(x=> x.leveraged && rows.some(r=> r.h.productKey===x.key)) ? "保有中" : "なし"}</span>
-    <span class="chip-r ${(total ? (byClass.safe||0)/total*100 : 0) < (pol.minSafeWeightPct||8) ? "ng" : "ok"}">安全資産 ${(total ? (byClass.safe||0)/total*100 : 0).toFixed(1)}% / 下限${pol.minSafeWeightPct||8}%</span>
+    <span class="chip-r ${(total ? ((byClass.safe||0)+(byClass.cash||0))/total*100 : 0) < (pol.minSafeWeightPct||8) ? "ng" : "ok"}">安全資産 ${(total ? ((byClass.safe||0)+(byClass.cash||0))/total*100 : 0).toFixed(1)}% / 下限${pol.minSafeWeightPct||8}%</span>
   </div>`;
 
   /* --- 移行プラン --- */
@@ -1145,7 +1140,9 @@ function renderPf(p){
     const tags = [];
     if(prod.leveraged) tags.push('<span class="tag ng">R1違反</span>');
     if(prod.planned === "sell") tags.push('<span class="tag plan">売却予定</span>');
-    if(prod.kind === "stock" && prod.planned !== "sell" && !(prod.thesis && prod.exitRule)) tags.push('<span class="tag warn">撤退条件 未記録</span>');
+    if(prod.planned === "review") tags.push('<span class="tag plan">選別中</span>');
+    if(h.estimated) tags.push('<span class="tag">積立を推定反映</span>');
+    if(prod.kind === "stock" && prod.planned === "keep" && !(prod.thesis && prod.exitRule)) tags.push('<span class="tag warn">撤退条件 未記録</span>');
     if(prod.kind === "stock" && plp != null && plp <= -(pol.stockReviewDrawdownPct||15)) tags.push(`<span class="tag warn">-${pol.stockReviewDrawdownPct||15}%見直し</span>`);
     if(prod.active) tags.push('<span class="tag">アクティブ</span>');
     if(prod.buyTarget) tags.push('<span class="tag ok">買付先</span>');
@@ -1214,6 +1211,7 @@ function renderPf(p){
     ${alertsHtml}
     <div class="pf-sub">運用状況</div>
     ${kpiHtml}
+    ${optHtml ? `<div class="pf-sub">基本配分の案（あなたが選びます）</div>${optHtml}${decHtml}` : ""}
     <div class="pf-sub">アセットアロケーション（縦線＝基本配分、淡色帯＝±${band}%の許容範囲）</div>
     ${allocHtml}
     ${ruleChips}
@@ -1240,7 +1238,7 @@ function renderPf(p){
     if(!isFinite(amt) || amt <= 0){ msgEl.textContent = "投入額を入力してください。"; return; }
     msgEl.textContent = "";
     const newTotal = total + amt;
-    const needs = (p.assetClasses||[]).filter(c=> c.key !== "stock").map(c=> ({ c, need: Math.max(0, newTotal*c.targetPct/100 - (byClass[c.key]||0)) }));
+    const needs = (p.assetClasses||[]).filter(c=> c.key !== "stock" && !c.excludeFromDrift && c.targetPct > 0).map(c=> ({ c, need: Math.max(0, newTotal*c.targetPct/100 - (byClass[c.key]||0)) }));
     const needSum = needs.reduce((s,n)=> s + n.need, 0);
     const alloc = needs.map(n=> ({ c:n.c, amount: needSum > amt ? amt * n.need/needSum : n.need }));
     const rest = amt - alloc.reduce((s,a)=> s + a.amount, 0);
@@ -1249,7 +1247,7 @@ function renderPf(p){
     const shown = alloc.filter(a=> a.amount >= 1);
     const rowsHtml = shown.map(a=>{
       const prod = (p.products||[]).find(x=> x.classKey === a.c.key && x.buyTarget) || (p.products||[]).find(x=> x.classKey === a.c.key);
-      const where = a.c.key === "safe" ? "特定（1万円単位）" : "NISA枠に残りがあれば優先";
+      const where = a.c.key === "safe" ? "特定（1万円単位・発行後1年は換金不可）" : a.c.key === "jgbFix" ? "特定（満期保有）" : "NISA枠に残りがあれば優先";
       return `<tr><td>${esc(a.c.name)}</td><td>${esc(prod ? prod.name : "—")}</td><td class="num"><strong>${fmtYen(a.amount)}</strong></td><td>${esc(where)}</td></tr>`;
     }).join("");
     out.innerHTML = rowsHtml ? `<div class="tbl-wrap"><table>

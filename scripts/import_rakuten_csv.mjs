@@ -63,6 +63,9 @@ for (const r of rows.slice(hdr + 1)) {
       || ensureProduct({ key: `stk_${code.toLowerCase()}`, name, kind: "stock", classKey: "stock", ticker, currency: usd ? "USD" : "JPY", thesis: null, exitRule: null });
     if (cur != null) { prod.price = cur; prod.priceDate = asOf; }
     holdings.push({ productKey: prod.key, account: acct, shares: qty, cost });
+  } else if (kind === "投資信託" && /マネーファンド|MRF/.test(name)) {
+    prod = ensureProduct({ key: "rakuten_mf", name: "楽天・マネーファンド", kind: "manual", classKey: "cash" });
+    holdings.push({ productKey: prod.key, account: acct, valueOverride: value, cost });
   } else if (kind === "投資信託") {
     const n = norm(name);
     prod = findProduct((x) => x.kind === "fund" && (n.startsWith(norm(x.name)) || norm(x.name).startsWith(n) || (x.aliases || []).some((a) => n.includes(norm(a)))));
@@ -74,13 +77,15 @@ for (const r of rows.slice(hdr + 1)) {
     if (cur != null) { prod.price = cur; prod.priceDate = asOf; }
     holdings.push({ productKey: prod.key, account: acct, units: qty, cost });
   } else if (kind === "国内債券") {
+    // 個人向け国債（額面・元本保証）は安全資産、それ以外の利付国債（新窓販など、時価評価）は国内国債（固定）
+    const kojin = /個人/.test(name);
     const m = name.match(/第\s*(\d+)\s*回/);
-    const key = m ? `jgb${m[1]}` : "jgb_new";
+    const key = (kojin ? "jgb" : "jgbfix") + (m ? m[1] : "_" + asOf.replace(/-/g, ""));
     prod = findProduct((x) => x.key === key)
-      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey: "safe", note: "額面評価" });
+      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey: kojin ? "safe" : "jgbFix", note: kojin ? "額面評価" : "時価評価（満期保有で利回り確定）" });
     holdings.push({ productKey: prod.key, account: acct, valueOverride: value, cost });
   } else if (kind === "外貨預り金") {
-    prod = ensureProduct({ key: "cash_usd", name: "米ドル預り金", kind: "manual", classKey: "safe" });
+    prod = ensureProduct({ key: "cash_usd", name: "米ドル預り金", kind: "manual", classKey: "cash" });
     holdings.push({ productKey: prod.key, account: "-", valueOverride: value, cost: value });
   } else if (kind === "金・プラチナ") {
     prod = findProduct((x) => x.kind === "gold_jpyg")
@@ -106,7 +111,7 @@ for (const h of holdings) {
 const jpyCashRow = rows.find((r) => r[0] === "預り金" && num(r[1]) != null);
 const jpyCash = jpyCashRow ? num(jpyCashRow[1]) : 0;
 if (jpyCash > 0) {
-  ensureProduct({ key: "cash_jpy", name: "円預り金", kind: "manual", classKey: "safe" });
+  ensureProduct({ key: "cash_jpy", name: "円預り金", kind: "manual", classKey: "cash" });
   merged.push({ productKey: "cash_jpy", account: "-", valueOverride: jpyCash, cost: jpyCash });
   seen.add("cash_jpy");
 }
