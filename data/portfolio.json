@@ -1,77 +1,214 @@
 {
-  "version": 1,
+  "version": 2,
   "lastUpdated": "2026-10-02T00:57:52.214Z",
+  "project": {
+    "name": "ポートフォリオ再構築PJ v2",
+    "startedAt": "2026-10-04",
+    "charter": "docs/project-v2.md",
+    "goal": "長期の複利で年5〜6%を、単年の下振れを抑えて狙う（年8%は大きな値動きを受け入れない限り現実的でない）",
+    "performanceStart": "2026-10-03",
+    "performanceNote": "実績リターンはPJ発足時点（2026-10-03の全保有登録）から計測。それ以前の履歴は保有の一部しか登録されていなかったため対象外。",
+    "decisions": [
+      {
+        "id": "d1",
+        "title": "基本配分を選ぶ",
+        "options": [
+          "案A 成長寄り",
+          "案B 固め（推奨）"
+        ],
+        "chosen": null,
+        "provisional": "B"
+      },
+      {
+        "id": "d2",
+        "title": "個別株の上限",
+        "options": [
+          "原典の30%のまま",
+          "15%に引き下げ（推奨）"
+        ],
+        "chosen": null,
+        "provisional": "30"
+      },
+      {
+        "id": "d3",
+        "title": "残す個別株",
+        "options": [
+          "基準に沿って利用者が選ぶ"
+        ],
+        "chosen": null
+      }
+    ]
+  },
   "policy": {
-    "targetAnnualReturnPct": 5,
+    "targetAnnualReturnPct": 5.4,
+    "targetRangePct": [
+      5,
+      6
+    ],
+    "targetRiskPct": 11,
     "rebalanceBandPct": 3,
     "regularRebalanceMonths": [
       1,
       7
     ],
     "maxStockWeightPct": 30,
-    "minFundWeightPct": 70,
-    "rules": [
-      "レバレッジ・信用取引はしない",
-      "よくわからない産業の銘柄は買わない",
-      "パッシブ（インデックス）商品を中心に、徐々にグロース割合を増やす",
-      "購入資産の7割は投資信託（NISA枠をフルに使い、不足分は低コスト商品を特定口座で）、個別株は3割以下",
-      "基本配分から3%超ズレたらリバランス（原則は毎月の積立配分で調整し、売却は最小限）",
-      "リバランスの定期チェックは半年に1回（1月・7月）",
-      "基本ポートフォリオは数年単位で維持（リスク許容度か市場構造が変化した時のみ見直す）"
+    "maxSingleStockPct": null,
+    "minSafeWeightPct": 8,
+    "stockReviewDrawdownPct": 15,
+    "taxHarvestMonths": [
+      11,
+      12
     ],
-    "policySource": "Google スプレッドシート「投資ルール」タブ（10xFM8eo8LNaj1oZL4JX_vPGQWS8jg-SX6jSq2fWJaB0）"
+    "reviewStaleDays": 9,
+    "rules": [
+      "R1 レバレッジ・信用取引・ブルベア型は持たない（原典ルールB）",
+      "R2 個別株は合計30%以内（原典）。15%への引き下げと1銘柄8%以内を提案中（利用者の判断待ち）",
+      "R3 個別株は買う前に「買う理由」と「撤退条件」を記録する。取得価格から-15%で必ず見直し、理由が崩れていたら売る",
+      "R4 特定口座の含み損は、その年の特定口座に実現益（配当を含む）がある場合に年内の損出しを検討する。残したい銘柄は売って翌営業日以降に買い戻せる（R1違反の商品は買い戻さない）。通算しきれない損失は確定申告で3年繰り越す",
+      "R5 まとまった新規購入は6か月以上に分ける。急騰後の一括購入はしない",
+      "R6 新規資金・積立は基本配分に足りないクラスへ入れる。積立の配分は1月・7月の点検で見直す",
+      "R7 NISA内の含み損は損出しの対象外（税の効果がない）。売るかどうかは税ではなく投資判断で決める",
+      "R8 基本配分から±3%超でリバランス。原則は積立配分で調整し、売却は最小限。1月・7月に定期点検",
+      "R9 安全資産（国債・現金）を8%以上、そのうちすぐ動かせる現金等を3%以上保つ（個人向け国債は発行後1年は換金できない）",
+      "R10 金の売却損は株式と損益通算できない。金は損切り目的で売らない"
+    ],
+    "policySource": "Google スプレッドシート「投資ルール」タブ（10xFM8eo8LNaj1oZL4JX_vPGQWS8jg-SX6jSq2fWJaB0）＋ docs/project-v2.md",
+    "proposedMaxStockWeightPct": 15,
+    "proposedMaxSingleStockPct": 8,
+    "minLiquidPct": 3,
+    "returnBasis": "複利（幾何）"
   },
   "assetClasses": [
     {
       "key": "gEq",
       "name": "全世界株式",
-      "targetPct": 35,
-      "expReturnPct": 5.5,
+      "targetPct": 30,
+      "geoReturnPct": 6,
       "riskPct": 17,
+      "fxShare": 0.95,
+      "stressPct": -45,
+      "equity": true,
       "color": "#2E5E4E"
     },
     {
-      "key": "usEq",
-      "name": "米国株式",
-      "targetPct": 10,
-      "expReturnPct": 6.5,
+      "key": "jpIdx",
+      "name": "日本株（投信）",
+      "targetPct": 22,
+      "geoReturnPct": 6,
       "riskPct": 18,
+      "fxShare": 0,
+      "stressPct": -45,
+      "equity": true,
+      "color": "#8A2A35"
+    },
+    {
+      "key": "usIdx",
+      "name": "米国株インデックス",
+      "targetPct": 6,
+      "geoReturnPct": 5.5,
+      "riskPct": 18,
+      "fxShare": 1,
+      "stressPct": -45,
+      "equity": true,
       "color": "#3A6EA5"
     },
     {
+      "key": "stock",
+      "name": "個別株",
+      "targetPct": 8,
+      "geoReturnPct": 6,
+      "riskPct": 25,
+      "fxShare": 0.2,
+      "stressPct": -50,
+      "equity": true,
+      "color": "#B4694A"
+    },
+    {
       "key": "dmBond",
-      "name": "先進国債券",
-      "targetPct": 15,
-      "expReturnPct": 2.5,
+      "name": "先進国債券（為替ヘッジなし）",
+      "targetPct": 0,
+      "geoReturnPct": 2.5,
       "riskPct": 9,
+      "fxShare": 1,
+      "stressPct": -10,
+      "equity": false,
       "color": "#54628C"
     },
     {
-      "key": "jpBond",
-      "name": "国内債券",
-      "targetPct": 5,
-      "expReturnPct": 0.7,
-      "riskPct": 2,
-      "color": "#7A5C2E"
+      "key": "jgbFix",
+      "name": "国内国債（固定・満期保有）",
+      "targetPct": 12,
+      "geoReturnPct": 3,
+      "riskPct": 4,
+      "fxShare": 0,
+      "stressPct": 0,
+      "equity": false,
+      "color": "#4E6E8C"
     },
     {
       "key": "gold",
       "name": "金",
-      "targetPct": 10,
-      "expReturnPct": 3,
-      "riskPct": 13,
-      "color": "#B4694A"
+      "targetPct": 5,
+      "geoReturnPct": 2.5,
+      "riskPct": 16,
+      "fxShare": 1,
+      "stressPct": -5,
+      "equity": false,
+      "color": "#B08A2E"
     },
     {
-      "key": "jpStock",
-      "name": "日本株式（高配当株・個別株）",
-      "targetPct": 25,
-      "expReturnPct": 7,
-      "riskPct": 23,
-      "color": "#8A2A35"
+      "key": "safe",
+      "name": "安全資産（個人向け国債）",
+      "targetPct": 17,
+      "geoReturnPct": 2,
+      "riskPct": 0.5,
+      "fxShare": 0,
+      "stressPct": 0,
+      "equity": false,
+      "color": "#7A8A6E"
+    },
+    {
+      "key": "cash",
+      "name": "現金・待機資金",
+      "targetPct": 0,
+      "geoReturnPct": 0.3,
+      "riskPct": 0,
+      "fxShare": 0,
+      "stressPct": 0,
+      "equity": false,
+      "color": "#A6ADA0",
+      "excludeFromDrift": true
     }
   ],
-  "assumptionsNote": "期待リターンは各クラスの長期想定（年率・税費用控除前の概算）。加重平均で約5.0%になるよう設計。リスク(σ)は過去実績ベースの概算で、クラス間の相関(株式と債券・金の低相関)によりポートフォリオ全体のリスクは単純加重平均より低くなる想定。数値は data/portfolio.json を編集して調整可能。",
+  "correlations": {
+    "gEq": {
+      "jpIdx": 0.65,
+      "usIdx": 0.95,
+      "stock": 0.65,
+      "dmBond": 0.45,
+      "gold": 0.25
+    },
+    "jpIdx": {
+      "usIdx": 0.55,
+      "stock": 0.8,
+      "dmBond": 0.2,
+      "gold": 0.05
+    },
+    "usIdx": {
+      "stock": 0.6,
+      "dmBond": 0.45,
+      "gold": 0.25
+    },
+    "stock": {
+      "dmBond": 0.2,
+      "gold": 0.05
+    },
+    "dmBond": {
+      "gold": 0.45,
+      "jgbFix": 0.3
+    }
+  },
+  "assumptionsNote": "前提は円建て・今後10年の複利（幾何）リターンの推計。株式は割高・円安起点を踏まえ6%と控えめに置く（docs/project-v2.md 第6節）。1月・7月の定期点検で見直す。",
   "products": [
     {
       "key": "allcountry",
@@ -81,21 +218,66 @@
       "isin": "JP90C000H1T1",
       "assocCode": "0331418A",
       "feePct": 0.05775,
-      "nisa": "tsumitate",
+      "buyTarget": true,
       "price": 37855,
       "priceDate": "2026-10-01"
+    },
+    {
+      "key": "rakuten225",
+      "name": "楽天・プラス・日経225インデックス・ファンド",
+      "kind": "fund",
+      "classKey": "jpIdx",
+      "isin": "JP90C000QAU8",
+      "assocCode": "9I31223C",
+      "feePct": 0.088,
+      "price": 21546,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "tracers_nk50hd",
+      "name": "Tracers 日経平均高配当株50インデックス（奇数月分配型）",
+      "kind": "fund",
+      "classKey": "jpIdx",
+      "isin": "JP90C000QF97",
+      "assocCode": "02313241",
+      "feePct": 0.10725,
+      "price": 16350,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "carrera",
+      "name": "カレラ 日本小型株式ファンド",
+      "kind": "fund",
+      "classKey": "jpIdx",
+      "isin": "JP90C000D7X4",
+      "assocCode": "9Y319165",
+      "active": true,
+      "note": "アクティブファンド。買い増しはしない（投資ルール：パッシブ3年経験後）",
+      "price": 29362,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "sbi43bull",
+      "name": "SBI日本株4.3ブル",
+      "kind": "fund",
+      "classKey": "jpIdx",
+      "isin": "JP90C000FSK4",
+      "assocCode": "8931317C",
+      "leveraged": 4.3,
+      "note": "日々の値動きが日本株の約4.3倍。2027-09-07償還予定",
+      "price": 78068,
+      "priceDate": "2026-10-03"
     },
     {
       "key": "sp500",
       "name": "eMAXIS Slim 米国株式（S&P500）",
       "kind": "fund",
-      "classKey": "usEq",
+      "classKey": "usIdx",
       "isin": "JP90C000GKC6",
       "assocCode": "03311187",
       "feePct": 0.09372,
-      "nisa": "tsumitate",
-      "price": 44514,
-      "priceDate": "2026-10-01"
+      "price": 44658,
+      "priceDate": "2026-10-03"
     },
     {
       "key": "dmbond",
@@ -105,129 +287,631 @@
       "isin": "JP90C000END3",
       "assocCode": "0331A172",
       "feePct": 0.154,
-      "nisa": "growth",
-      "price": 14980,
-      "priceDate": "2026-10-01"
+      "price": 14956,
+      "priceDate": "2026-10-03"
     },
     {
-      "key": "jpbond",
-      "name": "eMAXIS Slim 国内債券インデックス",
-      "kind": "fund",
-      "classKey": "jpBond",
-      "isin": "JP90C000ENB7",
-      "assocCode": "03318172",
-      "feePct": 0.132,
-      "nisa": "growth",
-      "price": 8357,
-      "priceDate": "2026-10-01"
-    },
-    {
-      "key": "gold",
+      "key": "goldfund",
       "name": "SBI・iシェアーズ・ゴールドファンド（為替ヘッジなし）",
       "kind": "fund",
       "classKey": "gold",
       "isin": "JP90C000PLM4",
       "assocCode": "8931A236",
       "feePct": 0.1838,
-      "nisa": "growth",
+      "buyTarget": true,
+      "note": "金を買い増す場合はNISA成長枠で買えるこちらを優先",
       "price": 23538,
       "priceDate": "2026-10-01"
-    },
-    {
-      "key": "rakuten225",
-      "name": "楽天・プラス・日経225インデックス・ファンド",
-      "kind": "fund",
-      "classKey": "jpStock",
-      "isin": "JP90C000QAU8",
-      "assocCode": "9I31223C",
-      "nisa": "tsumitate",
-      "price": 21749,
-      "priceDate": "2026-10-01"
-    },
-    {
-      "key": "tracers_nk50hd",
-      "name": "Tracers 日経平均高配当株50インデックス（奇数月分配型）",
-      "kind": "fund",
-      "classKey": "jpStock",
-      "isin": "JP90C000QF97",
-      "assocCode": "02313241",
-      "feePct": 0.10725,
-      "nisa": "growth",
-      "price": 16589,
-      "priceDate": "2026-10-01"
-    },
-    {
-      "key": "jgb191",
-      "name": "個人向け国債 変動10年 第191回",
-      "kind": "manual",
-      "classKey": "jpBond",
-      "nisa": "none",
-      "note": "額面評価。保有側の valueOverride で管理（変動10年は元本割れなし）",
-      "price": null,
-      "priceDate": null
     },
     {
       "key": "gold_physical",
       "name": "金（現物・グラム建て）",
       "kind": "gold_jpyg",
       "classKey": "gold",
-      "nisa": "none",
-      "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035 の概算（口座残高表示と整合することを2026-07-15に照合済み）",
-      "price": 21292.66,
-      "priceDate": "2026-10-02"
+      "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035の概算",
+      "price": 21052,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "jgb191",
+      "name": "個人向け国債 変動10年 第191回",
+      "kind": "manual",
+      "classKey": "safe",
+      "note": "額面評価。半年ごとに利率見直し（2026年10月発行分の変動10年は1.95%）。発行日から1年経過後に換金可（発行月は要確認）"
+    },
+    {
+      "key": "jgb_new",
+      "name": "個人向け国債（変動10年／固定5年・新規購入用）",
+      "kind": "manual",
+      "classKey": "safe",
+      "buyTarget": true,
+      "note": "毎月募集。1万円単位。発行日から1年は中途換金できず、換金時は直前2回分の利子×0.79685が差し引かれる"
+    },
+    {
+      "key": "cash_usd",
+      "name": "米ドル預り金",
+      "kind": "manual",
+      "classKey": "cash"
+    },
+    {
+      "key": "mufg",
+      "name": "三菱UFJフィナンシャル・グループ",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "8306.T",
+      "currency": "JPY",
+      "thesis": null,
+      "exitRule": null,
+      "price": 3544,
+      "priceDate": "2026-10-03",
+      "planned": "review"
+    },
+    {
+      "key": "etn",
+      "name": "イートン（ETN）",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "ETN",
+      "currency": "USD",
+      "thesis": null,
+      "exitRule": null,
+      "price": 436.11,
+      "priceDate": "2026-10-03",
+      "planned": "review"
+    },
+    {
+      "key": "orix",
+      "name": "オリックス",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "8591.T",
+      "currency": "JPY",
+      "planned": "review",
+      "price": 5745,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "sansan",
+      "name": "Sansan",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "4443.T",
+      "currency": "JPY",
+      "planned": "review",
+      "price": 2069,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "finatext",
+      "name": "FINATEXTホールディングス",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "4419.T",
+      "currency": "JPY",
+      "planned": "review",
+      "price": 1443,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "melco",
+      "name": "三菱電機",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "6503.T",
+      "currency": "JPY",
+      "planned": "review",
+      "price": 5264,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "murata",
+      "name": "村田製作所",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "6981.T",
+      "currency": "JPY",
+      "planned": "review",
+      "price": 8467,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "vrt",
+      "name": "バーティブ・ホールディングス（VRT）",
+      "kind": "stock",
+      "classKey": "stock",
+      "ticker": "VRT",
+      "currency": "USD",
+      "planned": "review",
+      "price": 252.18,
+      "priceDate": "2026-10-03"
+    },
+    {
+      "key": "cash_jpy",
+      "name": "円預り金",
+      "kind": "manual",
+      "classKey": "cash"
+    },
+    {
+      "key": "jgb_fix10",
+      "name": "利付国債（新窓販・10年固定）",
+      "kind": "manual",
+      "classKey": "jgbFix",
+      "buyTarget": true,
+      "note": "毎月募集。満期まで持てば利回り（10年で3%前後、2026年10月）が確定。途中売却は時価"
+    },
+    {
+      "key": "rakuten_mf",
+      "name": "楽天・マネーファンド",
+      "kind": "manual",
+      "classKey": "cash",
+      "note": "待機資金の置き場所。CSV取り込みで評価額を更新"
     }
   ],
+  "fx": {
+    "USDJPY": 157.88,
+    "date": "2026-10-03"
+  },
   "holdings": [
     {
       "productKey": "rakuten225",
       "account": "NISAつみたて",
-      "units": 146583,
-      "cost": 300000,
-      "note": "申告評価額311,240円（2026-07-15）→ 含意NAV約21,233円/万口。初回の実価格取得時に整合を自動検証"
+      "units": 290770,
+      "cost": 600000
     },
     {
       "productKey": "tracers_nk50hd",
       "account": "NISA成長",
-      "units": 211886,
-      "cost": 322850
+      "units": 214449,
+      "cost": 327101
     },
     {
-      "productKey": "dmbond",
+      "productKey": "carrera",
       "account": "NISA成長",
-      "units": 146038,
-      "cost": 225001,
-      "note": "申告評価額229,470円と整合（NAV約15,713円/万口）。初回申告の『＋145,330口』は二重計上の可能性が高く未登録（alerts verify:dmbond 参照）"
+      "units": 16208,
+      "cost": 50000
+    },
+    {
+      "productKey": "sbi43bull",
+      "account": "特定",
+      "units": 18434,
+      "cost": 180000
+    },
+    {
+      "productKey": "sp500",
+      "account": "特定",
+      "units": 6819,
+      "cost": 30000
     },
     {
       "productKey": "sp500",
       "account": "NISA成長",
       "units": 61154,
-      "cost": 243447
+      "cost": 243448
+    },
+    {
+      "productKey": "dmbond",
+      "account": "特定",
+      "units": 145330,
+      "cost": 225001
+    },
+    {
+      "productKey": "dmbond",
+      "account": "NISA成長",
+      "units": 146038,
+      "cost": 225000
     },
     {
       "productKey": "jgb191",
-      "account": "課税",
+      "account": "特定",
       "valueOverride": 300000,
       "cost": 300000
     },
     {
+      "productKey": "cash_usd",
+      "account": "-",
+      "valueOverride": 258,
+      "cost": 258
+    },
+    {
       "productKey": "gold_physical",
-      "account": "現物（純金積立等）",
+      "account": "-",
       "grams": 4.75509,
       "cost": 124367
+    },
+    {
+      "productKey": "mufg",
+      "account": "特定",
+      "shares": 100,
+      "cost": 356200
+    },
+    {
+      "productKey": "etn",
+      "account": "特定",
+      "shares": 2,
+      "cost": 128229
+    },
+    {
+      "productKey": "orix",
+      "account": "特定",
+      "shares": 50,
+      "cost": 333700
+    },
+    {
+      "productKey": "sansan",
+      "account": "特定",
+      "shares": 100,
+      "cost": 213275
+    },
+    {
+      "productKey": "finatext",
+      "account": "特定",
+      "shares": 100,
+      "cost": 137715
+    },
+    {
+      "productKey": "melco",
+      "account": "特定",
+      "shares": 20,
+      "cost": 131780
+    },
+    {
+      "productKey": "murata",
+      "account": "特定",
+      "shares": 5,
+      "cost": 55345
+    },
+    {
+      "productKey": "vrt",
+      "account": "特定",
+      "shares": 3,
+      "cost": 159541
     }
   ],
+  "holdingsAsOf": "2026-10-03",
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
     "lifetimeLimit": 18000000,
     "usedThisYear": {
       "year": 2026,
-      "tsumitate": 0,
-      "growth": 0
+      "tsumitate": null,
+      "growth": null
     },
-    "usedLifetime": 1091298,
-    "note": "usedLifetime はNISA口座内保有の取得額合計（つみたて30万＋成長79.1万）。2026年の年間枠消化額は購入時期の情報待ちで未設定"
+    "usedLifetime": 1445549,
+    "note": "usedLifetime はNISA内保有の取得額合計（つみたて60万＋成長84.5万）。2026年の年間枠の消化額は未確認"
+  },
+  "plan": {
+    "phases": [
+      {
+        "id": 1,
+        "name": "確認と是正",
+        "period": "2026年10月",
+        "goal": "積立先の変更（10/12締切）、税とNISA枠の確認、ルール違反の解消、基本配分と個別株の方針決定"
+      },
+      {
+        "id": 2,
+        "name": "移行",
+        "period": "2026年10月〜2027年3月",
+        "goal": "6か月に分けてオルカンと国債へ。年内の損出し"
+      },
+      {
+        "id": 3,
+        "name": "点検と申告",
+        "period": "2027年1〜3月",
+        "goal": "NISA新枠の活用、半期点検、損失の繰越申告"
+      },
+      {
+        "id": 4,
+        "name": "定常運用",
+        "period": "2027年4月〜",
+        "goal": "自動監視と週次レビューで維持"
+      }
+    ],
+    "steps": [
+      {
+        "id": "s01",
+        "phase": 1,
+        "due": "2026-10-12",
+        "title": "【急ぎ】NISAつみたての積立先を楽天225からオルカンへ変更",
+        "detail": "楽天カード決済の積立は前月12日締め。10/12までに変えれば11月買付からオルカンになる",
+        "auto": null,
+        "status": "todo",
+        "urgent": true
+      },
+      {
+        "id": "s02",
+        "phase": 1,
+        "due": "2026-10-12",
+        "title": "今年の特定口座の実現損益と配当を確認",
+        "detail": "楽天証券「実現損益」「配当・分配金」。損出しで税金が戻るのは今年の特定口座に利益がある場合のみ（最大 約36,000円）",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s03",
+        "phase": 1,
+        "due": "2026-10-12",
+        "title": "2026年のNISA枠の使用額を確認",
+        "detail": "楽天証券のNISA画面の「つみたて投資枠」「成長投資枠」の今年の使用額をチャットで伝える",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s04",
+        "phase": 1,
+        "due": "2026-10-16",
+        "title": "SBI日本株4.3ブルを全売却",
+        "detail": "原典ルールB（R1）違反。2027-09-07償還予定。買い戻さない",
+        "auto": {
+          "type": "noHolding",
+          "productKey": "sbi43bull"
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s05",
+        "phase": 1,
+        "due": "2026-10-16",
+        "title": "基本配分を選ぶ（案A 成長寄り／案B 固め）",
+        "detail": "選ぶまでは案Bを暫定で表示・監視",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s06",
+        "phase": 1,
+        "due": "2026-10-16",
+        "title": "個別株の上限を決める（原典30%のまま／15%に引き下げ）",
+        "detail": "選ぶまでは原典の30%で監視",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s07",
+        "phase": 1,
+        "due": "2026-10-23",
+        "title": "残す個別株を選び、理由と撤退条件を記録",
+        "detail": "基準：事業を説明できる（ルールB）／撤退条件を書ける／1銘柄8%以内／同じテーマを重ねない",
+        "auto": {
+          "type": "stocksHaveThesis"
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s08",
+        "phase": 1,
+        "due": "2026-10-30",
+        "title": "残さないと決めた個別株を売却",
+        "detail": "損失の出ている銘柄は損出しにもなる",
+        "auto": {
+          "type": "plannedSellsDone"
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s09",
+        "phase": 1,
+        "due": "2026-10-30",
+        "title": "先進国債券を売却（案Bは全部、案Aは特定口座分のみ）",
+        "detail": "為替ヘッジなし・円安157円起点。守りは円建ての国債で持つ",
+        "auto": {
+          "type": "noHolding",
+          "productKey": "dmbond"
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s10",
+        "phase": 2,
+        "due": "2026-10-31",
+        "title": "オルカン購入 1/6（累計 約18.5万円）",
+        "detail": "特定またはNISA成長枠。積立分は含めない",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 185000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s11",
+        "phase": 2,
+        "due": "2026-11-30",
+        "title": "オルカン購入 2/6（累計 約37万円）",
+        "detail": "",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 370000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s12",
+        "phase": 2,
+        "due": "2026-11-30",
+        "title": "利付国債（新窓販10年）を購入（案Bの場合 約44万円）",
+        "detail": "満期保有で利回りが確定。11月・12月の2回に分けてもよい",
+        "auto": {
+          "type": "classCostAtLeast",
+          "classKey": "jgbFix",
+          "yen": 440000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s13",
+        "phase": 2,
+        "due": "2026-12-15",
+        "title": "年内の損出し（残す銘柄は売って翌営業日以降に買い戻し）",
+        "detail": "国内株は12/28約定まで。米国株・海外資産の投信は休場と受渡日数があるため12月中旬まで。楽天の年末受渡日一覧で確認",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s14",
+        "phase": 2,
+        "due": "2026-12-25",
+        "title": "個人向け国債を購入（案Bの場合 約33万円、11〜12月募集）",
+        "detail": "発行後1年は換金できないため、すぐ使う資金は入れない",
+        "auto": {
+          "type": "classCostAtLeast",
+          "classKey": "safe",
+          "yen": 630000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s15",
+        "phase": 2,
+        "due": "2026-12-25",
+        "title": "オルカン購入 3/6（累計 約55.5万円）",
+        "detail": "",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 555000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s16",
+        "phase": 3,
+        "due": "2027-01-20",
+        "title": "オルカン購入 4/6（累計 約74万円・2027年NISA成長枠）",
+        "detail": "新しい年間枠を優先",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 740000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s17",
+        "phase": 3,
+        "due": "2027-01-31",
+        "title": "半期点検（前提・基本配分・積立配分の見直し）",
+        "detail": "docs/project-v2.md 第4・6節",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s18",
+        "phase": 3,
+        "due": "2027-02-28",
+        "title": "オルカン購入 5/6（累計 約92.5万円）",
+        "detail": "",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 925000
+        },
+        "status": "todo"
+      },
+      {
+        "id": "s19",
+        "phase": 3,
+        "due": "2027-03-15",
+        "title": "損失が通算しきれなければ確定申告で繰越",
+        "detail": "申告しないと翌年以降に繰り越せない",
+        "auto": null,
+        "status": "todo"
+      },
+      {
+        "id": "s20",
+        "phase": 3,
+        "due": "2027-03-31",
+        "title": "オルカン購入 6/6（累計 約111万円）",
+        "detail": "",
+        "auto": {
+          "type": "costAtLeast",
+          "productKey": "allcountry",
+          "account": [
+            "特定",
+            "NISA成長"
+          ],
+          "yen": 1110000
+        },
+        "status": "todo"
+      }
+    ]
+  },
+  "market": {
+    "asOf": "2026-10-04",
+    "items": [
+      {
+        "label": "日銀 政策金利",
+        "value": "1.25%",
+        "note": "9月に利上げ。12月1.50%の予想も"
+      },
+      {
+        "label": "日本10年国債",
+        "value": "3.09%",
+        "note": "1年で+1.43pt。債券ファンドには逆風"
+      },
+      {
+        "label": "個人向け国債 変動10年",
+        "value": "1.95%",
+        "note": "10月発行分。固定5年は2.24%"
+      },
+      {
+        "label": "日経平均",
+        "value": "6.7〜7万円",
+        "note": "3週連続上昇、6月高値に接近。過熱感"
+      },
+      {
+        "label": "FRB 政策金利",
+        "value": "3.75〜4.00%",
+        "note": "9月に2023年以来の利上げ"
+      },
+      {
+        "label": "米10年国債",
+        "value": "5.2〜5.3%",
+        "note": "2002年以来の高水準。株は債券に対し割高"
+      },
+      {
+        "label": "S&P500 予想PER",
+        "value": "19〜21倍",
+        "note": "10年平均18.6倍"
+      },
+      {
+        "label": "ドル円",
+        "value": "157円台",
+        "note": "介入警戒。日銀利上げなら円高リスク"
+      },
+      {
+        "label": "金（ドル建て）",
+        "value": "1月高値比 約-22%",
+        "note": "実質金利上昇が逆風、中銀買いは継続"
+      }
+    ],
+    "implications": [
+      "安全資産で約2%が取れるため、ポートフォリオの「固い部分」を個人向け国債で作る",
+      "株は高値圏・割高なので、新規投入は3回以上に分ける",
+      "円安水準のため外貨建て資産は分割購入し、日本株インデックスを一定残して為替を分散する",
+      "金は比率5%に下げ、買い増しは急がない"
+    ]
   },
   "history": [
     {
@@ -889,6 +1573,20 @@
         "jpBond": 300000,
         "gold": 101249
       }
+    },
+    {
+      "date": "2026-10-03",
+      "total": 3705918,
+      "cost": 3820960,
+      "flow": 0,
+      "byClass": {
+        "jpIdx": 1168618,
+        "usIdx": 303554,
+        "stock": 1397613,
+        "dmBond": 435770,
+        "safe": 300258,
+        "gold": 100105
+      }
     }
   ],
   "alerts": [
@@ -896,8 +1594,10 @@
       "id": "verify:dmbond",
       "date": "2026-07-15",
       "level": "info",
-      "status": "open",
-      "message": "【要確認】先進国債券は初回申告で『146,038口＋145,330口』でしたが、評価額229,470円は146,038口とのみ整合するため146,038口で登録しています。もう1ロット（145,330口・別口座）が実在する場合はClaudeに伝えてください。初回の実価格取得時にも自動検証されます。"
+      "status": "done",
+      "message": "【要確認】先進国債券は初回申告で『146,038口＋145,330口』でしたが、評価額229,470円は146,038口とのみ整合するため146,038口で登録しています。もう1ロット（145,330口・別口座）が実在する場合はClaudeに伝えてください。初回の実価格取得時にも自動検証されます。",
+      "closedDate": "2026-10-04",
+      "closedNote": "特定口座に145,330口が実在することを確認"
     },
     {
       "id": "verify:rakuten225",
@@ -912,35 +1612,45 @@
       "date": "2026-10-02",
       "level": "action",
       "message": "【リバランス】全世界株式 が基本配分 35% に対し 0.0%（-35.0pt）。約 ¥546,887 の買い増し（積立配分の増額）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
-      "status": "open"
+      "status": "done",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     },
     {
       "id": "drift:usEq",
       "date": "2026-10-02",
       "level": "action",
       "message": "【リバランス】米国株式 が基本配分 10% に対し 17.4%（+7.4pt）。約 ¥115,967 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
-      "status": "open"
+      "status": "done",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     },
     {
       "id": "drift:jpBond",
       "date": "2026-10-02",
       "level": "action",
       "message": "【リバランス】国内債券 が基本配分 5% に対し 19.2%（+14.2pt）。約 ¥221,873 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
-      "status": "open"
+      "status": "done",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     },
     {
       "id": "drift:jpStock",
       "date": "2026-10-02",
       "level": "action",
       "message": "【リバランス】日本株式（高配当株・個別株） が基本配分 25% に対し 42.9%（+17.9pt）。約 ¥279,667 の売り（または積立停止）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
-      "status": "open"
+      "status": "done",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     },
     {
       "id": "regular-check:2026-07",
       "date": "2026-07-15",
       "level": "info",
-      "status": "open",
-      "message": "【定期点検】半年に1回のリバランス点検月です（2026-07）。配分・リスク許容度・NISA枠の消化状況を確認してください。"
+      "status": "done",
+      "message": "【定期点検】半年に1回のリバランス点検月です（2026-07）。配分・リスク許容度・NISA枠の消化状況を確認してください。",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     },
     {
       "id": "drift:gold",
@@ -955,7 +1665,9 @@
       "date": "2026-10-02",
       "level": "action",
       "message": "【リバランス】金 が基本配分 10% に対し 6.5%（-3.5pt）。約 ¥55,005 の買い増し（積立配分の増額）で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。",
-      "status": "open"
+      "status": "done",
+      "closedDate": "2026-10-04",
+      "closedNote": "PJ v2で資産クラスを再定義したため再判定"
     }
   ],
   "aiLog": [
@@ -1258,6 +1970,61 @@
       "date": "2026-10-02",
       "actor": "github-actions",
       "message": "価格を自動更新（成功 8 / 失敗 0）。評価額合計 ¥1,562,535。未対応アラート 5 件。"
+    },
+    {
+      "date": "2026-10-04",
+      "actor": "claude",
+      "message": "ポートフォリオ再構築PJ v2を発足。保有19件を2026-10-03の楽天証券画面で全面更新（評価額¥3,705,918）。基本配分を全世界35/日本株idx25/米国idx8/個別株12/先進国債券5/金5/安全資産10に再設計（期待6.06%・σ13.3%、現状は5.78%・σ16.7%）。投資ルールv2（R1〜R10）と移行プラン18ステップを設定。消失していた週次レビューを再登録。"
+    },
+    {
+      "date": "2026-10-04",
+      "actor": "claude",
+      "message": "独立レビュー（品質・改善担当）の指摘15件を反映。前提を複利に統一し株式を6%へ引き下げ、案A（成長寄り）と案B（固め・推奨）を併記。個別株の上限変更と残す銘柄は利用者の判断事項に変更。オルカン購入の自動完了判定から積立分を除外。積立先変更の締切（10/12）を追加。"
+    }
+  ],
+  "options": [
+    {
+      "id": "A",
+      "name": "案A 成長寄り",
+      "targets": {
+        "gEq": 35,
+        "jpIdx": 25,
+        "usIdx": 8,
+        "stock": 12,
+        "dmBond": 5,
+        "jgbFix": 0,
+        "gold": 5,
+        "safe": 10,
+        "cash": 0
+      }
+    },
+    {
+      "id": "B",
+      "name": "案B 固め（推奨）",
+      "targets": {
+        "gEq": 30,
+        "jpIdx": 22,
+        "usIdx": 6,
+        "stock": 8,
+        "dmBond": 0,
+        "jgbFix": 12,
+        "gold": 5,
+        "safe": 17,
+        "cash": 0
+      }
+    }
+  ],
+  "activeOption": "B",
+  "activeOptionStatus": "provisional",
+  "recurring": [
+    {
+      "productKey": "rakuten225",
+      "account": "NISAつみたて",
+      "yen": 100000,
+      "day": 1,
+      "lastApplied": "2026-10",
+      "estimated": true,
+      "note": "7/15→9/21→10/3の取得額の推移（30万→50万→60万）から月10万円・月初買付と推定。積立先をオルカンに変更したらproductKeyを書き換える"
     }
   ]
 }

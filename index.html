@@ -121,6 +121,73 @@
   .pf-sub{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:var(--ai);font-size:13.5px;letter-spacing:.12em;margin:22px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:4px}
   .ai-log{font-size:12.5px;color:var(--ink-soft);line-height:1.9}
   .ai-log .d{font-weight:600;margin-right:8px;color:var(--ink)}
+  .ai-log .who{display:inline-block;min-width:4.5em;margin-right:6px;color:var(--ai);font-weight:600}
+
+  /* 再構築PJ v2 */
+  .pj-head{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:end;padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid var(--rule)}
+  @media (max-width:640px){ .pj-head{grid-template-columns:1fr} }
+  .pj-name{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:18px;font-weight:600;color:var(--ai);letter-spacing:.08em}
+  .pj-goal{font-size:13px;margin-top:2px}
+  .pj-meta{color:var(--ink-soft);font-size:11.5px}
+  .pj-prog-label{font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+  .kpi-sub{display:block;font-size:11px;font-weight:400;color:var(--ink-soft);margin-top:2px}
+  .pf-alert .lv{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:9px;margin-right:8px;vertical-align:1px}
+  .pf-alert .lv.action{background:#F6E3E1;color:#C0392F}
+  .pf-alert .lv.warn{background:#F5EEDC;color:#8A6A1E}
+  .pf-alert .lv.info{background:#EEF1EC;color:var(--ink-soft)}
+  .bar-band{position:absolute;top:0;height:100%;background:rgba(35,74,107,.09)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip-r{font-size:12px;padding:3px 10px;border-radius:12px;border:1px solid var(--rule)}
+  .chip-r.ok{background:#EEF4EF;color:#2E5E4E;border-color:#CFE0D3}
+  .chip-r.ng{background:#F6E3E1;color:#C0392F;border-color:#EBC6C2;font-weight:600}
+  .phase{border:1px solid var(--rule);border-radius:6px;padding:10px 14px;margin-bottom:10px;background:#FCFCFA}
+  .phase-h{display:flex;justify-content:space-between;gap:10px;font-weight:600;font-size:13.5px;color:var(--ai)}
+  .phase-m{font-weight:400;font-size:12px;color:var(--ink-soft)}
+  .phase-g{font-size:12px;color:var(--ink-soft);margin:2px 0 6px}
+  .steps{list-style:none;display:grid;gap:2px}
+  .steps li{display:grid;grid-template-columns:64px 1fr 56px;gap:10px;align-items:start;padding:6px 0;border-top:1px dashed var(--rule);font-size:13px}
+  .steps li.st-done .st-title{color:var(--ink-soft);text-decoration:line-through}
+  .st-chip{font-size:10.5px;text-align:center;padding:2px 0;border-radius:9px;background:#EEF1EC;color:var(--ink-soft)}
+  .st-chip.done{background:#EEF4EF;color:#2E5E4E}
+  .st-chip.soon{background:#F5EEDC;color:#8A6A1E;font-weight:600}
+  .st-chip.overdue{background:#F6E3E1;color:#C0392F;font-weight:600}
+  .st-body{display:flex;flex-direction:column}
+  .st-detail{font-size:11.5px;color:var(--ink-soft)}
+  .st-due{font-size:12px;color:var(--ink-soft);text-align:right}
+  table.hold td{vertical-align:top;white-space:normal}
+  table.hold td:first-child{min-width:240px}
+  .cls-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:9px;background:#EEF1EC;color:var(--ink-soft);margin-top:3px;white-space:nowrap}
+  .tag.ng{background:#F6E3E1;color:#C0392F;font-weight:600}
+  .tag.warn{background:#F5EEDC;color:#8A6A1E}
+  .tag.plan{background:#E6ECF3;color:var(--ai)}
+  .tag.ok{background:#EEF4EF;color:#2E5E4E}
+  .muted{color:var(--ink-soft)}
+  .sm{font-size:11px}
+  table.mkt td{white-space:normal;font-size:13px}
+  table.mkt td:first-child{white-space:nowrap}
+  table.mkt td:nth-child(2){text-align:left;white-space:nowrap}
+  table.mkt td:nth-child(3){text-align:left}
+  .impl{margin:10px 0 0 1.2em;font-size:13px;line-height:1.8}
+  .rules{list-style:none;display:grid;gap:4px;font-size:13px}
+  .rules li{display:grid;grid-template-columns:40px 1fr;gap:6px;padding:4px 0;border-bottom:1px dashed var(--rule)}
+  .rules .rid{font-weight:600;color:var(--ai)}
+  table.opts td,table.opts th{font-size:12.5px}
+  table.opts tr.active td{background:#F3F6F9}
+  .decs{list-style:none;display:grid;gap:6px;margin-top:12px;font-size:13px}
+  .decs li{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start}
+  .pf-row.nisa{grid-template-columns:180px 1fr 210px}
+  .add-grid.planner{grid-template-columns:220px auto 1fr}
+  .pf-kpis{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:640px){
+    .pf-row.nisa{grid-template-columns:1fr}
+    .pf-row.nisa .drift-badge{justify-self:end}
+    .add-grid.planner{grid-template-columns:1fr}
+    .pf-kpis{grid-template-columns:repeat(2,1fr)}
+    .drift-badge{white-space:normal}
+    .steps li{grid-template-columns:56px 1fr}
+    .steps li .st-due{grid-column:2;text-align:left}
+  }
 </style>
 </head>
 <body>
@@ -893,13 +960,13 @@ renderInstOptions();
 renderAll();
 initCloud();
 </script>
-<script>
+<script type="module">
 /* =========================================================
-   ポートフォリオ運用（AI管理）
+   ポートフォリオ運用（AI管理）— 再構築PJ v2
    データ源: data/portfolio.json（GitHub Actions と Claude が自動更新）
-   このブロックは表示専用。売買・保有の記録は Claude へのチャットで依頼する。
+   このブロックは表示専用。売買の記録は楽天証券の保有一覧をClaudeへのチャットに貼って依頼する。
    ========================================================= */
-"use strict";
+import { portfolioStats, effectiveWeights } from "./scripts/lib.mjs";
 (function(){
 const root = document.getElementById("pf-root");
 const DATA_URL = "data/portfolio.json";
@@ -912,7 +979,9 @@ fetch(DATA_URL + "?t=" + Date.now())
     この機能は GitHub Pages のURL（https://〜.github.io/〜）で開いたときに動作します。ローカルファイル（file://）では表示されません。</div>`;
   });
 
-function pfPct(n){ return (n>0?"+":"") + n.toFixed(1) + "pt"; }
+const pt = n => (n>0?"+":"") + n.toFixed(1) + "pt";
+const pct = (n,d=1) => (n>0?"+":"") + n.toFixed(d) + "%";
+const jstToday = () => new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
 
 function holdingValue(p, h, prodMap){
   if(Number.isFinite(h.valueOverride)) return h.valueOverride;
@@ -920,21 +989,22 @@ function holdingValue(p, h, prodMap){
   if(!prod || !Number.isFinite(prod.price)) return null;
   if(prod.kind === "fund") return (h.units||0)/10000*prod.price;
   if(prod.kind === "gold_jpyg") return (h.grams||0)*prod.price;
-  return (h.shares||0)*prod.price;
+  if(prod.kind === "stock") return (h.shares||0)*prod.price*(prod.currency === "USD" ? ((p.fx||{}).USDJPY||NaN) : 1);
+  return null;
 }
 
-/* 直近1年（最短60日）の修正ディーツ法リターン。flows は取得額の増減で近似 */
-function modifiedDietz(history){
-  if(!history || history.length < 2) return null;
+/* 直近1年（計測開始日以降）の修正ディーツ法リターン。flow が無い記録は取得額の増減で近似 */
+function modifiedDietz(history, start){
+  history = (history||[]).filter(s=> !start || s.date >= start);
+  if(history.length < 2) return null;
   const end = history[history.length-1];
   const endT = new Date(end.date).getTime();
   const win = history.filter(s=> endT - new Date(s.date).getTime() <= 366*86400000);
   if(win.length < 2) return null;
   const T = (endT - new Date(win[0].date).getTime())/86400000;
-  if(T < 60) return { periodDays:T, r:(win[0].total ? end.total/win[0].total-1 : 0), annualized:null };
   let F = 0, wF = 0;
   for(let i=1;i<win.length;i++){
-    const f = (win[i].cost||0) - (win[i-1].cost||0);
+    const f = win[i].flow != null ? win[i].flow : (win[i].cost||0) - (win[i-1].cost||0);
     if(f === 0) continue;
     const ti = (new Date(win[i].date).getTime() - new Date(win[0].date).getTime())/86400000;
     F += f; wF += f * (T-ti)/T;
@@ -942,167 +1012,224 @@ function modifiedDietz(history){
   const denom = win[0].total + wF;
   if(denom <= 0) return null;
   const r = (end.total - win[0].total - F)/denom;
-  return { periodDays:T, r, annualized: Math.pow(1+r, 365/T) - 1 };
+  return { periodDays:T, r, annualized: T >= 60 ? Math.pow(1+r, 365/T) - 1 : null };
 }
 
 function renderPf(p){
   const prodMap = {}; (p.products||[]).forEach(x=> prodMap[x.key]=x);
-  const byClass = {}; const byProd = {}; let total = 0, cost = 0;
+  const clsMap = {}; (p.assetClasses||[]).forEach(c=> clsMap[c.key]=c);
+  const pol = p.policy || {};
+  const rows = [];
+  const byClass = {}; let total = 0, cost = 0, stockV = 0;
   (p.holdings||[]).forEach(h=>{
+    const prod = prodMap[h.productKey] || {name:h.productKey};
     const v = holdingValue(p, h, prodMap);
+    rows.push({h, prod, v});
     if(v == null) return;
-    const prod = prodMap[h.productKey];
-    const ck = prod ? prod.classKey : "other";
+    const ck = prod.classKey || "other";
     byClass[ck] = (byClass[ck]||0) + v;
-    byProd[h.productKey] = (byProd[h.productKey]||0) + v;
     total += v; cost += (h.cost||0);
+    if(prod.kind === "stock") stockV += v;
   });
-  const band = (p.policy && p.policy.rebalanceBandPct) || 3;
-  const tgtReturn = (p.policy && p.policy.targetAnnualReturnPct) || 5;
+  const band = pol.rebalanceBandPct || 3;
+  const today = jstToday();
+
+  /* --- PJ見出しと進捗 --- */
+  const steps = ((p.plan||{}).steps)||[];
+  const doneN = steps.filter(s=> s.status === "done").length;
+  const stepState = s => s.status === "done" ? "done" : (s.due && s.due < today ? "overdue" : (s.due && (new Date(s.due)-new Date(today))/86400e3 <= 7 ? "soon" : "todo"));
+  const curPhase = (((p.plan||{}).phases)||[]).find(ph=> steps.some(s=> s.phase === ph.id && s.status !== "done"));
+  const proj = p.project || {};
+  const headHtml = proj.name ? `<div class="pj-head">
+      <div><div class="pj-name">${esc(proj.name)}</div>
+      <div class="pj-goal">${esc(proj.goal||"")}　<span class="pj-meta">発足 ${esc(proj.startedAt||"")}</span></div></div>
+      <div class="pj-prog"><div class="pj-prog-label num">移行プラン ${doneN} / ${steps.length}${curPhase ? `　現在：Phase ${curPhase.id} ${esc(curPhase.name)}` : "　完了"}</div>
+      <div class="bar-track"><div class="bar-now" style="width:${steps.length? (doneN/steps.length*100).toFixed(1):0}%;background:#234A6B"></div></div></div>
+    </div>` : "";
 
   /* --- アラート --- */
-  const open = (p.alerts||[]).filter(a=> a.status === "open");
+  const order = {action:0, warn:1, info:2};
+  const open = (p.alerts||[]).filter(a=> a.status === "open").sort((a,b)=> (order[a.level]??3)-(order[b.level]??3));
+  const lvLabel = {action:"要対応", warn:"注意", info:"情報"};
   const alertsHtml = open.length
-    ? open.map(a=> `<div class="pf-alert ${esc(a.level||"info")}"><span class="d num">${esc(a.date||"")}</span>${esc(a.message||"")}</div>`).join("")
+    ? open.map(a=> `<div class="pf-alert ${esc(a.level||"info")}"><span class="lv ${esc(a.level||"info")}">${lvLabel[a.level]||"情報"}</span><span class="d num">${esc(a.updated||a.date||"")}</span>${esc(a.message||"")}</div>`).join("")
     : `<div class="pf-alert info">未対応のアラートはありません。基本配分の範囲内（±${band}%）で運用中です。</div>`;
 
   /* --- KPI --- */
-  const pl = total - cost;
-  const plPct = cost > 0 ? pl/cost*100 : 0;
-  const dz = modifiedDietz(p.history);
-  let annualHtml = "—", annualCls = "";
-  if(dz && dz.annualized != null){
-    const a = dz.annualized*100;
-    annualCls = a >= tgtReturn ? "plus" : "minus";
-    annualHtml = fmtSigned(Number(a.toFixed(2))) + "%（直近" + Math.round(dz.periodDays) + "日・年率換算）";
-  }else if(dz){
-    annualHtml = fmtSigned(Number((dz.r*100).toFixed(2))) + "%（累計・観測" + Math.round(dz.periodDays) + "日）";
-  }
+  const pl = total - cost, plPct = cost > 0 ? pl/cost*100 : 0;
+  const sCur = portfolioStats(p, effectiveWeights(p));
+  const wTgt = {}; (p.assetClasses||[]).forEach(c=> wTgt[c.key] = c.targetPct/100);
+  const sTgt = portfolioStats(p, wTgt);
+  const dz = modifiedDietz(p.history, (p.project||{}).performanceStart);
+  const tgtR = pol.targetAnnualReturnPct || 6, rng = pol.targetRangePct || [5,8];
+  let realHtml = "—", realCls = "";
+  if(dz && dz.annualized != null){ const a = dz.annualized*100; realCls = a >= rng[0] ? "plus" : "minus"; realHtml = pct(a,2) + `<span class="kpi-sub">直近${Math.round(dz.periodDays)}日・年率</span>`; }
+  else if(dz){ realHtml = pct(dz.r*100,2) + `<span class="kpi-sub">PJ発足から${Math.round(dz.periodDays)}日の累計（60日以降は年率表示）</span>`; }
+  else { realHtml = `<span style="font-size:15px">計測開始</span><span class="kpi-sub">PJ発足日（${esc((p.project||{}).performanceStart||"")}）から計測。2営業日目から表示</span>`; }
   const upd = p.lastUpdated ? new Date(p.lastUpdated) : null;
-  const updStr = upd ? upd.getFullYear()+"/"+String(upd.getMonth()+1).padStart(2,"0")+"/"+String(upd.getDate()).padStart(2,"0") : "初回自動更新待ち";
-  const expReturn = (p.assetClasses||[]).reduce((s,c)=> s + c.targetPct*c.expReturnPct, 0)/100;
-
-  const costKnown = cost > 0;
-  const kpiHtml = `<div class="kpis num">
+  const updStr = upd ? `${upd.getMonth()+1}/${upd.getDate()} ${String(upd.getHours()).padStart(2,"0")}:${String(upd.getMinutes()).padStart(2,"0")}` : "—";
+  const kpiHtml = `<div class="kpis pf-kpis num">
     <div class="kpi"><div class="k">証券ポートフォリオ評価額</div><div class="v">${fmtYen(total)}</div></div>
-    <div class="kpi"><div class="k">取得額 計</div><div class="v">${costKnown ? fmtYen(cost) : '<span style="font-size:14px;color:var(--ink-soft)">未登録（Claudeに伝えてください）</span>'}</div></div>
-    <div class="kpi"><div class="k">評価損益</div><div class="v ${costKnown ? signClass(pl) : ""}">${costKnown ? fmtSigned(pl)+"円（"+fmtSigned(Number(plPct.toFixed(1)))+"%）" : "—"}</div></div>
-    <div class="kpi"><div class="k">実績リターン vs 目標 年${tgtReturn}%</div><div class="v ${annualCls}">${annualHtml}</div></div>
-    <div class="kpi"><div class="k">基本配分の期待リターン</div><div class="v">年 ${expReturn.toFixed(2)}%</div></div>
-    <div class="kpi"><div class="k">AI最終更新</div><div class="v" style="font-size:15px">${updStr}</div></div>
-  </div>`;
+    <div class="kpi"><div class="k">評価損益</div><div class="v ${signClass(pl)}">${fmtSigned(pl)}円<span class="kpi-sub">取得額 ${fmtYen(cost)}・${pct(plPct)}</span></div></div>
+    <div class="kpi"><div class="k">実績リターン（目標 年${rng[0]}〜${rng[1]}%）</div><div class="v ${realCls}">${realHtml}</div></div>
+    <div class="kpi"><div class="k">現在の配分の想定（複利）</div><div class="v">年${sCur.geo.toFixed(1)}%<span class="kpi-sub">リスクσ ${sCur.sd.toFixed(1)}%・2008年型 ${sCur.stress.toFixed(0)}%</span></div></div>
+    <div class="kpi"><div class="k">基本配分の想定（複利）</div><div class="v">年${sTgt.geo.toFixed(1)}%<span class="kpi-sub">リスクσ ${sTgt.sd.toFixed(1)}%・2008年型 ${sTgt.stress.toFixed(0)}%</span></div></div>
+    <div class="kpi"><div class="k">自動更新</div><div class="v" style="font-size:15px">${updStr}<span class="kpi-sub">USD/JPY ${p.fx && p.fx.USDJPY ? p.fx.USDJPY : "—"}・保有基準日 ${esc(p.holdingsAsOf||"—")}</span></div></div>
+  </div>
+  <p class="chart-caption" style="margin-top:8px">想定は ${esc(p.assumptionsNote||"")} リスクσは「1年でこの幅くらい上下するのが普通」という目安（約3年に2年は「想定±σ」に収まる）。2008年型は株式-45%・円高込みの急落を当てはめた概算。</p>`;
 
-  /* --- 配分（目標 vs 現状） --- */
-  const rowsHtml = (p.assetClasses||[]).map(c=>{
-    const v = byClass[c.key]||0;
-    const w = total ? v/total*100 : 0;
-    const drift = w - c.targetPct;
-    const over = total > 0 && Math.abs(drift) > band;
+  /* --- 案の比較と判断待ち事項 --- */
+  const optRows = [{name:"現状", st:sCur, cur:true}].concat((p.options||[]).map(o=>{ const w={}; Object.entries(o.targets).forEach(([k,v])=> w[k]=v/100); return {name:o.name, st:portfolioStats(p,w), active:o.id===p.activeOption}; }));
+  const optHtml = (p.options||[]).length ? `<div class="tbl-wrap"><table class="opts">
+    <thead><tr><th>案</th><th>株式</th><th>外貨</th><th>複利の中心</th><th>リスクσ</th><th>単年-10%超</th><th>10年で年5%以上</th><th>2008年型</th></tr></thead>
+    <tbody>${optRows.map(r=> `<tr class="${r.active?"active":""}"><td>${esc(r.name)}${r.active ? ` <span class="tag ${p.activeOptionStatus==="provisional"?"warn":"ok"}">${p.activeOptionStatus==="provisional"?"暫定適用中":"採用中"}</span>` : ""}</td>
+      <td class="num">${r.st.equity.toFixed(0)}%</td><td class="num">${r.st.fx.toFixed(0)}%</td><td class="num"><strong>${r.st.geo.toFixed(1)}%</strong></td><td class="num">${r.st.sd.toFixed(1)}%</td>
+      <td class="num">${(r.st.pLoss10*100).toFixed(0)}%</td><td class="num">${(r.st.p10y5*100).toFixed(0)}%</td><td class="num minus">${r.st.stress.toFixed(0)}%</td></tr>`).join("")}</tbody></table></div>
+    <p class="chart-caption" style="margin-top:6px">再構築はリターンを上げるためではなく、同程度のリターンを小さな下振れで得るためのもの。株式の前提が年4.5%なら案Bは4.4%、7.5%なら6.4%。</p>` : "";
+  const decs = ((p.project||{}).decisions)||[];
+  const decHtml = decs.length ? `<ul class="decs">${decs.map(d=> `<li><span class="st-chip ${d.chosen?"done":"soon"}">${d.chosen?"決定":"判断待ち"}</span><span>${esc(d.title)}：${d.chosen ? "<strong>"+esc(d.chosen)+"</strong>" : esc(d.options.join("／"))}</span></li>`).join("")}</ul>` : "";
+
+  /* --- 配分 --- */
+  const allocHtml = (p.assetClasses||[]).filter(c=> c.targetPct > 0 || (byClass[c.key]||0) > 0).map(c=>{
+    const w = total ? (byClass[c.key]||0)/total*100 : 0;
+    const d = w - c.targetPct, over = total > 0 && Math.abs(d) > band && !c.excludeFromDrift;
     return `<div class="pf-row num">
       <span>${esc(c.name)}</span>
-      <div class="bar-track" title="現状 ${w.toFixed(1)}% ／ 目標 ${c.targetPct}%">
+      <div class="bar-track" title="現状 ${w.toFixed(1)}% ／ 基本配分 ${c.targetPct}%">
+        <div class="bar-band" style="left:${Math.max(0,c.targetPct-band)}%;width:${band*2}%"></div>
         <div class="bar-now" style="width:${Math.min(100,w).toFixed(1)}%;background:${esc(c.color||"#3A6EA5")}"></div>
         <div class="bar-tgt" style="left:${c.targetPct}%"></div>
       </div>
-      <span class="drift-badge ${over?"over":""}">${w.toFixed(1)}% / 目標${c.targetPct}%（${pfPct(drift)}）</span>
+      <span class="drift-badge ${over?"over":""}">${c.excludeFromDrift ? w.toFixed(1)+"%（配分判定の対象外）" : `${w.toFixed(1)}% / 基本${c.targetPct}%（${pt(d)}）`}</span>
     </div>`;
   }).join("");
+  const stockW = total ? stockV/total*100 : 0;
+  const ruleChips = `<div class="chips">
+    <span class="chip-r ${stockW > (pol.maxStockWeightPct||30) ? "ng" : "ok"}">個別株 ${stockW.toFixed(1)}% / 上限${pol.maxStockWeightPct||30}%${pol.proposedMaxStockWeightPct ? "（提案"+pol.proposedMaxStockWeightPct+"%）" : ""}</span>
+    <span class="chip-r ${(p.products||[]).some(x=> x.leveraged && rows.some(r=> r.h.productKey===x.key)) ? "ng" : "ok"}">レバレッジ商品 ${(p.products||[]).some(x=> x.leveraged && rows.some(r=> r.h.productKey===x.key)) ? "保有中" : "なし"}</span>
+    <span class="chip-r ${(total ? ((byClass.safe||0)+(byClass.cash||0))/total*100 : 0) < (pol.minSafeWeightPct||8) ? "ng" : "ok"}">安全資産 ${(total ? ((byClass.safe||0)+(byClass.cash||0))/total*100 : 0).toFixed(1)}% / 下限${pol.minSafeWeightPct||8}%</span>
+  </div>`;
 
-  /* --- 商品一覧 --- */
-  const nisaLabel = { tsumitate:"NISAつみたて", growth:"NISA成長", none:"課税" };
-  const prodRows = (p.products||[]).map(x=>{
-    const cls = (p.assetClasses||[]).find(c=> c.key === x.classKey);
-    const v = byProd[x.key]||0;
-    const hs = (p.holdings||[]).filter(h=> h.productKey === x.key);
-    const qty = hs.reduce((s,h)=> s + (h.units||h.shares||h.grams||0), 0);
-    let qtyStr = "—";
-    if(qty){
-      if(x.kind === "fund") qtyStr = qty.toLocaleString("ja-JP") + "口";
-      else if(x.kind === "gold_jpyg") qtyStr = qty.toLocaleString("ja-JP",{maximumFractionDigits:3}) + "g";
-      else if(x.kind === "stock") qtyStr = qty.toLocaleString("ja-JP") + "株";
-    }
-    const priceStr = x.kind === "manual"
-      ? "<span style='color:var(--ink-soft)'>額面評価</span>"
-      : (Number.isFinite(x.price)
-        ? Math.round(x.price).toLocaleString("ja-JP") + (x.kind==="gold_jpyg"?"/g":"") + "<br><span style='font-size:10.5px;color:var(--ink-soft)'>" + esc(x.priceDate||"") + "</span>"
-        : "<span style='color:var(--ink-soft)'>自動更新待ち</span>");
+  /* --- 移行プラン --- */
+  const stLabel = {done:"完了", overdue:"期限超過", soon:"今週", todo:"予定"};
+  const planHtml = (((p.plan||{}).phases)||[]).map(ph=>{
+    const ss = steps.filter(s=> s.phase === ph.id);
+    const dn = ss.filter(s=> s.status === "done").length;
+    const items = ss.map(s=>{ const st = stepState(s); return `<li class="st-${st}">
+        <span class="st-chip ${st}">${stLabel[st]}</span>
+        <span class="st-body"><span class="st-title">${esc(s.title)}</span>${s.detail ? `<span class="st-detail">${esc(s.detail)}</span>` : ""}</span>
+        <span class="st-due num">${s.status === "done" ? esc(s.doneDate||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
+      </li>`; }).join("");
+    return `<div class="phase"><div class="phase-h"><span>Phase ${ph.id}　${esc(ph.name)}</span><span class="phase-m">${esc(ph.period)}・${dn}/${ss.length}</span></div>
+      <div class="phase-g">${esc(ph.goal)}</div>${ss.length ? `<ul class="steps">${items}</ul>` : ""}</div>`;
+  }).join("");
+
+  /* --- 保有一覧 --- */
+  const sorted = rows.slice().sort((a,b)=> ((clsMap[a.prod.classKey]||{}).targetPct===undefined) - ((clsMap[b.prod.classKey]||{}).targetPct===undefined)
+    || (p.assetClasses||[]).findIndex(c=>c.key===a.prod.classKey) - (p.assetClasses||[]).findIndex(c=>c.key===b.prod.classKey) || (b.v||0)-(a.v||0));
+  const holdRows = sorted.map(({h, prod, v})=>{
+    const plv = v != null && h.cost ? v - h.cost : null;
+    const plp = plv != null && h.cost ? plv/h.cost*100 : null;
+    let qty = "—";
+    if(h.units) qty = h.units.toLocaleString("ja-JP") + "口";
+    else if(h.shares) qty = h.shares.toLocaleString("ja-JP") + "株";
+    else if(h.grams) qty = h.grams.toLocaleString("ja-JP",{maximumFractionDigits:3}) + "g";
+    let price = "—";
+    if(prod.kind === "manual") price = "<span class='muted'>額面</span>";
+    else if(Number.isFinite(prod.price)) price = (prod.currency === "USD" ? "$" + prod.price.toFixed(2) : Math.round(prod.price).toLocaleString("ja-JP") + (prod.kind==="gold_jpyg" ? "/g" : "")) + `<br><span class="muted sm">${esc(prod.priceDate||"")}</span>`;
+    const tags = [];
+    if(prod.leveraged) tags.push('<span class="tag ng">R1違反</span>');
+    if(prod.planned === "sell") tags.push('<span class="tag plan">売却予定</span>');
+    if(prod.planned === "review") tags.push('<span class="tag plan">選別中</span>');
+    if(h.estimated) tags.push('<span class="tag">積立を推定反映</span>');
+    if(prod.kind === "stock" && prod.planned === "keep" && !(prod.thesis && prod.exitRule)) tags.push('<span class="tag warn">撤退条件 未記録</span>');
+    if(prod.kind === "stock" && plp != null && plp <= -(pol.stockReviewDrawdownPct||15)) tags.push(`<span class="tag warn">-${pol.stockReviewDrawdownPct||15}%見直し</span>`);
+    if(prod.active) tags.push('<span class="tag">アクティブ</span>');
+    if(prod.buyTarget) tags.push('<span class="tag ok">買付先</span>');
     return `<tr>
-      <td>${esc(x.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${esc(cls?cls.name:"")}／${esc(nisaLabel[x.nisa]||"課税")}${x.feePct!=null?"／信託報酬"+x.feePct+"%":""}</span></td>
-      <td class="num">${priceStr}</td>
-      <td class="num">${qtyStr}</td>
-      <td class="num">${v ? fmtYen(v) : "—"}</td>
-      <td class="num">${total && v ? (v/total*100).toFixed(1)+"%" : "—"}</td>
+      <td><span class="cls-dot" style="background:${esc((clsMap[prod.classKey]||{}).color||"#999")}"></span>${esc(prod.name)}<br><span class="muted sm">${esc((clsMap[prod.classKey]||{}).name||"未分類")}／${esc(h.account||"")}</span> ${tags.join(" ")}</td>
+      <td class="num">${price}</td>
+      <td class="num">${qty}</td>
+      <td class="num">${v != null ? fmtYen(v) : "—"}</td>
+      <td class="num ${plv!=null?signClass(plv):""}">${plv != null ? fmtSigned(plv) + `<br><span class="sm">${pct(plp)}</span>` : "—"}</td>
+      <td class="num">${v != null && total ? (v/total*100).toFixed(1)+"%" : "—"}</td>
     </tr>`;
   }).join("");
 
-  /* --- NISA枠 --- */
-  let nisaHtml = "";
-  if(p.nisa){
-    const bar = (used, limit, label)=>{
-      const pct = limit ? Math.min(100, used/limit*100) : 0;
-      return `<div class="pf-row num" style="grid-template-columns:180px 1fr 210px">
-        <span>${label}</span>
-        <div class="bar-track"><div class="bar-now" style="width:${pct.toFixed(1)}%;background:#234A6B"></div></div>
-        <span class="drift-badge">${fmtYen(used)} / ${fmtYen(limit)}（${pct.toFixed(0)}%）</span>
-      </div>`;
-    };
-    const y = p.nisa.usedThisYear || {};
-    nisaHtml = `<div class="pf-sub">NISA枠の消化状況（${esc(String(y.year||""))}年）</div>
-      ${bar(y.tsumitate||0, p.nisa.annualTsumitateLimit, "つみたて投資枠（年間）")}
-      ${bar(y.growth||0, p.nisa.annualGrowthLimit, "成長投資枠（年間）")}
-      ${bar(p.nisa.usedLifetime||0, p.nisa.lifetimeLimit, "生涯投資枠")}`;
-  }
-
-  /* --- 推移（月次終値＋最新） --- */
+  /* --- 推移 --- */
   let chartHtml = "";
   if((p.history||[]).length >= 2){
-    const byMonth = {};
-    p.history.forEach(s=>{ byMonth[s.date.slice(0,7)] = s; });
+    const byMonth = {}; p.history.forEach(s=>{ byMonth[s.date.slice(0,7)] = s; });
     const pts = Object.keys(byMonth).sort().map(ym=> ({ym, v: byMonth[ym].total}));
-    if(pts.length >= 2){
-      chartHtml = `<div class="pf-sub">ポートフォリオ評価額の推移</div><div class="chart-card">${lineChartSVG(pts, [])}</div>`;
-    }
+    if(pts.length >= 2) chartHtml = `<div class="pf-sub">評価額の推移（月末値）</div><div class="chart-card">${lineChartSVG(pts, [])}</div>
+      <p class="chart-caption">2026年10月の増加は、未登録だった保有（個別株など）をまとめて登録したことによるもので、運用成績ではありません。</p>`;
   }
 
-  /* --- 保有未登録の案内 --- */
-  const setupHtml = (p.holdings||[]).length ? "" : `<div class="pf-alert warn">
-    保有商品が未登録です。Claude とのチャットで「オルカンを◯◯口（取得額◯◯円）保有」「◯◯株を◯株購入した」と伝えるだけで
-    data/portfolio.json に記録され、以後の評価・履歴・アラートはすべて自動で更新されます。下の購入プランで初回の買付配分も計算できます。</div>`;
+  /* --- 市況 --- */
+  let mktHtml = "";
+  if(p.market){
+    mktHtml = `<div class="pf-sub">市況メモ（${esc(p.market.asOf||"")}時点・週次レビューで更新）</div>
+      <div class="tbl-wrap"><table class="mkt"><tbody>${(p.market.items||[]).map(i=> `<tr><td>${esc(i.label)}</td><td class="num"><strong>${esc(i.value)}</strong></td><td class="muted">${esc(i.note||"")}</td></tr>`).join("")}</tbody></table></div>
+      ${(p.market.implications||[]).length ? `<ul class="impl">${p.market.implications.map(x=> `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`;
+  }
 
-  /* --- 購入プランナー --- */
-  const plannerHtml = `<div class="pf-sub">購入プラン（新規資金の最適配分）</div>
-    <p class="chart-caption" style="margin-bottom:10px">投入額を入れると、基本配分に近づくよう不足クラスから優先して配分します（リバランスは売却ではなく買付配分で行う方針）。</p>
-    <div class="add-grid" style="grid-template-columns:220px auto 1fr">
+  /* --- NISA --- */
+  let nisaHtml = "";
+  if(p.nisa){
+    const y = p.nisa.usedThisYear || {};
+    const bar = (used, limit, label)=>{
+      if(used == null) return `<div class="pf-row nisa num"><span>${label}</span><div class="muted sm">未確認（楽天証券のNISA枠画面の数字をチャットで伝えてください）</div><span></span></div>`;
+      const w = limit ? Math.min(100, used/limit*100) : 0;
+      return `<div class="pf-row nisa num"><span>${label}</span>
+        <div class="bar-track"><div class="bar-now" style="width:${w.toFixed(1)}%;background:#234A6B"></div></div>
+        <span class="drift-badge">${fmtYen(used)} / ${fmtYen(limit)}（${w.toFixed(0)}%）</span></div>`;
+    };
+    nisaHtml = `<div class="pf-sub">NISA枠</div>
+      ${bar(y.tsumitate, p.nisa.annualTsumitateLimit, `つみたて投資枠（${y.year||""}年）`)}
+      ${bar(y.growth, p.nisa.annualGrowthLimit, `成長投資枠（${y.year||""}年）`)}
+      ${bar(p.nisa.usedLifetime, p.nisa.lifetimeLimit, "生涯投資枠")}`;
+  }
+
+  /* --- 購入プラン --- */
+  const plannerHtml = `<div class="pf-sub">購入プラン（新規資金の配分）</div>
+    <p class="chart-caption" style="margin-bottom:10px">投入額を入れると、基本配分に足りないクラスから優先して配分します（ルールR6）。まとまった金額は3回以上に分けて買います（ルールR5）。</p>
+    <div class="add-grid planner">
       <div class="field" style="margin:0"><label for="pf-amt">投入額（円）</label><input type="number" id="pf-amt" placeholder="例：300000"></div>
       <button class="btn ghost" id="pf-plan-btn" style="height:42px">配分を計算</button>
       <span class="form-msg" id="pf-plan-msg"></span>
     </div>
     <div id="pf-plan-out" style="margin-top:12px"></div>`;
 
-  /* --- AIログ --- */
-  const logHtml = (p.aiLog||[]).slice(-6).reverse().map(l=>
-    `<div><span class="d num">${esc(l.date)}</span>${l.actor==="claude"?"🤖 Claude":"⚙️ 自動更新"}｜${esc(l.message)}</div>`).join("");
+  /* --- ルール・ログ --- */
+  const rulesHtml = (pol.rules||[]).length ? `<div class="pf-sub">投資ルール v2</div><ul class="rules">${pol.rules.map(r=>{ const m = r.match(/^(R\d+)\s+(.*)$/); return `<li>${m ? `<span class="rid">${esc(m[1])}</span>${esc(m[2])}` : esc(r)}</li>`; }).join("")}</ul>` : "";
+  const logHtml = (p.aiLog||[]).slice(-8).reverse().map(l=>
+    `<div><span class="d num">${esc(l.date)}</span><span class="who">${l.actor==="claude"?"Claude":"自動更新"}</span>${esc(l.message)}</div>`).join("");
 
   root.innerHTML = `
-    ${setupHtml}
+    ${headHtml}
     <div class="pf-sub" style="margin-top:0">アラート・推奨アクション</div>
     ${alertsHtml}
     <div class="pf-sub">運用状況</div>
     ${kpiHtml}
-    <div class="pf-sub">アセットアロケーション（縦線＝基本配分、±${band}%超で要リバランス）</div>
-    ${rowsHtml}
-    ${chartHtml}
-    <div class="pf-sub">商品別の状況</div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>商品</th><th>基準価額/株価</th><th>保有数</th><th>評価額</th><th>割合</th></tr></thead>
-      <tbody>${prodRows}</tbody>
+    ${optHtml ? `<div class="pf-sub">基本配分の案（あなたが選びます）</div>${optHtml}${decHtml}` : ""}
+    <div class="pf-sub">アセットアロケーション（縦線＝基本配分、淡色帯＝±${band}%の許容範囲）</div>
+    ${allocHtml}
+    ${ruleChips}
+    ${steps.length ? `<div class="pf-sub">移行プラン</div>${planHtml}` : ""}
+    <div class="pf-sub">保有一覧</div>
+    <div class="tbl-wrap"><table class="hold">
+      <thead><tr><th>商品</th><th>価格</th><th>保有数</th><th>評価額</th><th>損益</th><th>割合</th></tr></thead>
+      <tbody>${holdRows}</tbody>
     </table></div>
+    ${chartHtml}
+    ${mktHtml}
     ${nisaHtml}
     ${plannerHtml}
+    ${rulesHtml}
     <div class="pf-sub">AI管理ログ</div>
     <div class="ai-log">${logHtml || "ログはまだありません。"}</div>
-    <p class="chart-caption" style="margin-top:16px">価格は GitHub Actions が平日朝に自動取得し、配分のズレ・個別株上限・定期点検のアラートを自動生成します。
-    Claude が週次で運用状況をレビューします。売買の記録・方針変更は Claude へのチャットで依頼してください。投資方針の原本：投資ルール（Google スプレッドシート）。</p>`;
+    <p class="chart-caption" style="margin-top:16px">価格は GitHub Actions が平日朝に自動取得し、ルール違反・配分のズレ・移行プランの期限を自動判定します。毎週土曜に Claude が工程を分けてレビューします（市況→データ検証→運用分析→品質チェック→統括）。
+    売買したら、楽天証券の保有一覧（CSVかスクリーンショット）をチャットに貼るだけで記録が更新されます。計画書：docs/project-v2.md</p>`;
 
   document.getElementById("pf-plan-btn").addEventListener("click", ()=>{
     const amt = Number(document.getElementById("pf-amt").value);
@@ -1111,25 +1238,23 @@ function renderPf(p){
     if(!isFinite(amt) || amt <= 0){ msgEl.textContent = "投入額を入力してください。"; return; }
     msgEl.textContent = "";
     const newTotal = total + amt;
-    const needs = (p.assetClasses||[]).map(c=>{
-      const cur = byClass[c.key]||0;
-      return { c, need: Math.max(0, newTotal*c.targetPct/100 - cur) };
-    });
+    const needs = (p.assetClasses||[]).filter(c=> c.key !== "stock" && !c.excludeFromDrift && c.targetPct > 0).map(c=> ({ c, need: Math.max(0, newTotal*c.targetPct/100 - (byClass[c.key]||0)) }));
     const needSum = needs.reduce((s,n)=> s + n.need, 0);
-    const alloc = needs.map(n=>{
-      let a = needSum > 0 ? amt * n.need/needSum : amt * n.c.targetPct/100;
-      return { c:n.c, amount: a };
-    });
-    const rows = alloc.filter(a=> a.amount >= 1).map(a=>{
-      const prod = (p.products||[]).find(x=> x.classKey === a.c.key);
-      const name = prod ? prod.name : "個別株（投資ルールB・D：理解できる事業のみ／上限" + ((p.policy&&p.policy.maxStockWeightPct)||30) + "%）";
-      const waku = prod ? (nisaLabel[prod.nisa]||"特定") + "枠を優先" : "特定口座";
-      return `<tr><td>${esc(a.c.name)}</td><td>${esc(name)}</td><td class="num"><strong>${fmtYen(a.amount)}</strong></td><td>${esc(waku)}</td></tr>`;
+    const alloc = needs.map(n=> ({ c:n.c, amount: needSum > amt ? amt * n.need/needSum : n.need }));
+    const rest = amt - alloc.reduce((s,a)=> s + a.amount, 0);
+    const tw = alloc.reduce((s,a)=> s + a.c.targetPct, 0);
+    if(rest > 0 && tw > 0) alloc.forEach(a=>{ a.amount += rest * a.c.targetPct/tw; });
+    const shown = alloc.filter(a=> a.amount >= 1);
+    const rowsHtml = shown.map(a=>{
+      const prod = (p.products||[]).find(x=> x.classKey === a.c.key && x.buyTarget) || (p.products||[]).find(x=> x.classKey === a.c.key);
+      const where = a.c.key === "safe" ? "特定（1万円単位・発行後1年は換金不可）" : a.c.key === "jgbFix" ? "特定（満期保有）" : "NISA枠に残りがあれば優先";
+      return `<tr><td>${esc(a.c.name)}</td><td>${esc(prod ? prod.name : "—")}</td><td class="num"><strong>${fmtYen(a.amount)}</strong></td><td>${esc(where)}</td></tr>`;
     }).join("");
-    out.innerHTML = `<div class="tbl-wrap"><table>
-      <thead><tr><th>クラス</th><th>購入商品</th><th>金額</th><th>口座・枠</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>
-      <p class="chart-caption" style="margin-top:8px">NISA年間枠（つみたて120万・成長240万）を超える分は、同じ低コスト商品を特定口座で。購入後は Claude に金額と口数を伝えると記録されます。</p>`;
+    out.innerHTML = rowsHtml ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>クラス</th><th>購入商品</th><th>金額</th><th>口座</th></tr></thead>
+      <tbody>${rowsHtml}</tbody></table></div>
+      <p class="chart-caption" style="margin-top:8px">個別株は購入プランの対象外です（ルールR2・R3）。購入後は楽天証券の保有一覧をチャットに貼ってください。</p>`
+      : `<p class="chart-caption">すべてのクラスが基本配分以上です。全世界株式に入れるのが基本です。</p>`;
   });
 }
 })();

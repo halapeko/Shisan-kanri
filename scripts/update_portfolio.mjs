@@ -1,22 +1,22 @@
 /**
- * ポートフォリオ自動更新スクリプト（GitHub Actions で定期実行）
+ * ポートフォリオ自動更新スクリプト（GitHub Actions で平日朝に実行）
  *
- * 1. data/portfolio.json の各商品の最新価格を取得
+ * 1. 価格取得
  *    - 投資信託: 投信総合検索ライブラリー（投資信託協会）の時系列CSV
- *    - 株式:     Yahoo Finance chart API（ticker は "7203.T" 形式）
- * 2. 保有の評価額・クラス別配分を計算して history に日次スナップショットを追記
- * 3. 投資ルールに基づきアラートを生成・自動クローズ
- *    - 基本配分から3%超のドリフト
- *    - 個別株30%超 / 投信70%未満
- *    - 半年に1回（1月・7月）の定期リバランス点検
+ *    - 株式:     Yahoo Finance chart API（"8306.T" / "ETN" 形式、USD建ては USDJPY で円換算）
+ *    - 金現物:   GC=F × USDJPY ÷ 31.1035（円/g）
+ * 2. 評価額・クラス別配分を計算し、history に日次スナップショットを追記
+ * 3. 移行プランのステップを保有状況から自動完了判定
+ * 4. 投資ルール v2（docs/project-v2.md 第7節）に基づくアラートの生成・自動クローズ
  *
  * 依存パッケージなし（Node 20+）。
  */
 import fs from "node:fs";
+import { jstToday, productOf, holdingValue, summarize, stepAutoDone, trimAiLog } from "./lib.mjs";
 
 const PATH = new URL("../data/portfolio.json", import.meta.url).pathname;
 const p = JSON.parse(fs.readFileSync(PATH, "utf8"));
-const today = new Date().toISOString().slice(0, 10);
+const today = jstToday();
 const log = (m) => console.log(`[update] ${m}`);
 
 /* ---------- 価格取得 ---------- */
@@ -55,29 +55,32 @@ async function yahooLast(symbol) {
   const price = closes.at(-1) ?? r.meta?.regularMarketPrice;
   if (!Number.isFinite(price)) throw new Error("終値を取得できませんでした");
   const ts = r.meta?.regularMarketTime;
-  const date = ts ? new Date(ts * 1000).toISOString().slice(0, 10) : today;
+  const date = ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10) : today;
   return { date, price };
 }
 
-const fetchStockPrice = (prod) => yahooLast(prod.ticker);
-
-// 金現物の円/g概算: 国際スポット(USD/トロイオンス) × USDJPY ÷ 31.1035
-// （×1.1の消費税調整は行わない。ユーザーの口座残高表示がスポット税抜相当のため — 初回実行の照合で確認済み）
-async function fetchGoldJpyPerGram() {
-  const oz = await yahooLast("GC=F");
+let ok = 0, ng = 0;
+try {
   const fx = await yahooLast("JPY=X");
-  const price = (oz.price * fx.price) / 31.1034768;
-  return { date: oz.date, price: Math.round(price * 100) / 100 };
+  p.fx = { USDJPY: Math.round(fx.price * 100) / 100, date: fx.date };
+  log(`USDJPY: ${p.fx.USDJPY} (${fx.date})`);
+} catch (e) {
+  log(`NG USDJPY: ${e.message}（前回値 ${p.fx?.USDJPY} を維持）`);
 }
 
-let ok = 0, ng = 0;
+const held = new Set(p.holdings.map((h) => h.productKey));
 for (const prod of p.products) {
+  // 保有中か購入対象の商品だけ取得する（売却済みの個別株などは取得しない）
+  if (!held.has(prod.key) && !prod.buyTarget) continue;
   try {
     let r;
     if (prod.kind === "fund") r = await fetchFundNav(prod);
-    else if (prod.kind === "stock") r = await fetchStockPrice(prod);
-    else if (prod.kind === "gold_jpyg") r = await fetchGoldJpyPerGram();
-    else { log(`SKIP ${prod.name}（手動評価）`); continue; }
+    else if (prod.kind === "stock") r = await yahooLast(prod.ticker);
+    else if (prod.kind === "gold_jpyg") {
+      const oz = await yahooLast("GC=F");
+      if (!Number.isFinite(p.fx?.USDJPY)) throw new Error("USDJPY 未取得");
+      r = { date: oz.date, price: Math.round(((oz.price * p.fx.USDJPY) / 31.1034768) * 100) / 100 };
+    } else continue;
     prod.price = r.price;
     prod.priceDate = r.date;
     ok++;
@@ -88,113 +91,189 @@ for (const prod of p.products) {
   }
 }
 
-/* ---------- 評価額の計算 ---------- */
-// holdings: { productKey, account, units(投信:口数) | shares(株式:株数) | grams(金現物:g),
-//             cost(取得額合計円), valueOverride?(額面評価などの直接指定) }
-function holdingValue(h) {
-  if (Number.isFinite(h.valueOverride)) return h.valueOverride;
-  const prod = p.products.find((x) => x.key === h.productKey);
-  if (!prod || !Number.isFinite(prod.price)) return null;
-  if (prod.kind === "fund") return ((h.units || 0) / 10000) * prod.price; // 基準価額は1万口あたり
-  if (prod.kind === "gold_jpyg") return (h.grams || 0) * prod.price;
-  return (h.shares || 0) * prod.price;
+/* ---------- 自動積立の推定反映 ----------
+ * 毎月の積立は買付日の基準価額で口数を推定して保有に加え、入出金(flow)として記録する。
+ * 次の楽天CSV取り込みで実数に置き換わる。 */
+let recurringFlow = 0;
+for (const r of p.recurring || []) {
+  const ym = today.slice(0, 7);
+  if (r.lastApplied >= ym || Number(today.slice(8, 10)) < r.day) continue;
+  const prod = productOf(p, r.productKey);
+  if (!prod || !Number.isFinite(prod.price)) { log(`積立の推定反映をスキップ（価格なし）: ${r.productKey}`); continue; }
+  let h = p.holdings.find((x) => x.productKey === r.productKey && x.account === r.account);
+  if (!h) { h = { productKey: r.productKey, account: r.account, units: 0, cost: 0 }; p.holdings.push(h); }
+  const units = Math.floor((r.yen / prod.price) * 10000);
+  h.units = (h.units || 0) + units;
+  h.cost = (h.cost || 0) + r.yen;
+  h.estimated = true;
+  r.lastApplied = ym;
+  recurringFlow += r.yen;
+  if (p.nisa?.usedThisYear && r.account.startsWith("NISA") && p.nisa.usedThisYear.year === Number(today.slice(0, 4))) {
+    const k = r.account === "NISAつみたて" ? "tsumitate" : "growth";
+    if (p.nisa.usedThisYear[k] != null) p.nisa.usedThisYear[k] += r.yen;
+  }
+  if (p.nisa && r.account.startsWith("NISA") && p.nisa.usedLifetime != null) p.nisa.usedLifetime += r.yen;
+  log(`積立を推定反映: ${prod.name} ${r.yen}円 → ${units}口（${r.account}）`);
 }
 
-const byClass = {};
-const byKind = {};
-let total = 0, cost = 0, valued = 0;
-for (const h of p.holdings) {
-  const v = holdingValue(h);
-  if (v == null) continue;
-  const prod = p.products.find((x) => x.key === h.productKey);
-  const ck = prod?.classKey || "other";
-  byClass[ck] = (byClass[ck] || 0) + v;
-  byKind[prod?.kind || "other"] = (byKind[prod?.kind || "other"] || 0) + v;
-  total += v;
-  cost += h.cost || 0;
-  valued++;
-}
-
-// 一部の価格取得に失敗して評価額が欠けると誤ったドリフト判定になるため、
-// 全保有が評価できた時のみ履歴記録・アラート判定を行う
-const fullyValued = p.holdings.length > 0 && valued === p.holdings.length;
-
-if (fullyValued) {
-  const snap = { date: today, total: Math.round(total), cost: Math.round(cost), byClass: {} };
-  for (const [k, v] of Object.entries(byClass)) snap.byClass[k] = Math.round(v);
-  p.history = (p.history || []).filter((s) => s.date !== today);
+/* ---------- 評価 ---------- */
+const s = summarize(p);
+if (s.complete && s.total > 0) {
+  // flow は入出金（CSV取り込み時に記録）。同日の記録があれば引き継ぐ
+  const prev = (p.history || []).find((x) => x.date === today);
+  const snap = { date: today, total: Math.round(s.total), cost: Math.round(s.cost), flow: (prev?.flow || 0) + recurringFlow, byClass: {} };
+  for (const [k, v] of Object.entries(s.byClass)) snap.byClass[k] = Math.round(v);
+  p.history = (p.history || []).filter((x) => x.date !== today);
   p.history.push(snap);
   if (p.history.length > 1500) p.history = p.history.slice(-1500);
-} else if (p.holdings.length > 0) {
-  log(`保有 ${p.holdings.length} 件中 ${valued} 件しか評価できないため、履歴・アラートの更新をスキップ`);
+} else {
+  log(`保有 ${p.holdings.length} 件中 ${s.valued} 件しか評価できないため、履歴の更新をスキップ`);
 }
 
-/* ---------- アラート判定 ---------- */
+/* ---------- 移行プランの自動完了 ---------- */
+for (const st of p.plan?.steps || []) {
+  if (st.status !== "done" && stepAutoDone(p, st)) {
+    st.status = "done";
+    st.doneDate = today;
+    log(`計画ステップ完了: ${st.id} ${st.title}`);
+  }
+}
+
+/* ---------- アラート ---------- */
 const alerts = p.alerts || [];
-function upsertAlert(id, level, message) {
+const raised = new Set();
+const MANAGED = ["drift:", "cap:", "ban:", "review:", "floor:", "tax:", "plan:"];
+function raise(id, level, message) {
+  raised.add(id);
   const ex = alerts.find((a) => a.id === id && a.status === "open");
-  if (ex) { ex.date = today; ex.message = message; ex.level = level; return; }
+  if (ex) { ex.level = level; ex.message = message; ex.updated = today; return; }
   alerts.push({ id, date: today, level, message, status: "open" });
 }
-function closeAlert(id) {
-  for (const a of alerts) if (a.id === id && a.status === "open") { a.status = "done"; a.closedDate = today; }
-}
-const yen = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
+const yen = (n) => (n < 0 ? "-¥" : "¥") + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+const pol = p.policy;
+const openSteps = (p.plan?.steps || []).filter((x) => x.status !== "done");
+const STOCK_STEPS = ["stocksHaveThesis", "plannedSellsDone"];
+const stepsForClass = (ck) =>
+  openSteps.filter((x) =>
+    (x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck) ||
+    x.auto?.classKey === ck ||
+    (ck === "stock" && STOCK_STEPS.includes(x.auto?.type)));
 
-if (fullyValued && total > 0) {
-  const band = p.policy.rebalanceBandPct;
+if (s.complete && s.total > 0) {
+  const T = s.total;
+
+  // R8 ドリフト
   for (const c of p.assetClasses) {
-    const w = ((byClass[c.key] || 0) / total) * 100;
-    const drift = w - c.targetPct;
-    const id = `drift:${c.key}`;
-    if (Math.abs(drift) > band) {
-      const amount = (Math.abs(drift) / 100) * total;
-      const dir = drift > 0 ? "売り（または積立停止）" : "買い増し（積立配分の増額）";
-      upsertAlert(id, "action",
-        `【リバランス】${c.name} が基本配分 ${c.targetPct}% に対し ${w.toFixed(1)}%（${drift > 0 ? "+" : ""}${drift.toFixed(1)}pt）。約 ${yen(amount)} の${dir}で基本配分に戻せます。原則は売却せず、毎月の積立配分の調整で対応。`);
-    } else {
-      closeAlert(id);
+    if (c.excludeFromDrift) continue;
+    const w = ((s.byClass[c.key] || 0) / T) * 100;
+    const d = w - c.targetPct;
+    if (Math.abs(d) <= pol.rebalanceBandPct) continue;
+    const amt = (Math.abs(d) / 100) * T;
+    const steps = stepsForClass(c.key);
+    const how = d > 0 ? "積立・新規購入を止めて比率を下げる" : "新規資金・積立をこのクラスへ優先して入れる";
+    const msg = `【配分】${c.name} が ${w.toFixed(1)}%（基本配分 ${c.targetPct}%、${d > 0 ? "+" : ""}${d.toFixed(1)}pt）。約 ${yen(amt)} 分のズレ。${how}。` +
+      (steps.length ? `移行プランで対応中（${steps.map((x) => x.id).join("・")}）。` : "");
+    raise(`drift:${c.key}`, steps.length ? "info" : "action", msg);
+  }
+
+  // R1 レバレッジ
+  for (const prod of p.products.filter((x) => x.leveraged && held.has(x.key))) {
+    const v = s.byProduct[prod.key] || 0;
+    raise(`ban:leverage:${prod.key}`, "action",
+      `【ルールR1違反】${prod.name}（${yen(v)}、実効 ${yen(v * prod.leveraged)} 相当）を保有中。レバレッジ商品は持たないルール。${prod.note || ""}`);
+  }
+
+  // R2 個別株の上限
+  const stockW = ((s.byKind.stock || 0) / T) * 100;
+  if (stockW > pol.maxStockWeightPct) {
+    raise("cap:stock", "action",
+      `【ルールR2】個別株が合計 ${stockW.toFixed(1)}%（上限 ${pol.maxStockWeightPct}%）。約 ${yen(((stockW - pol.maxStockWeightPct) / 100) * T)} の超過。新規の個別株購入は停止。`);
+  }
+  for (const prod of p.products.filter((x) => x.kind === "stock" && held.has(x.key))) {
+    const w = ((s.byProduct[prod.key] || 0) / T) * 100;
+    if (pol.maxSingleStockPct && w > pol.maxSingleStockPct)
+      raise(`cap:single:${prod.key}`, "action", `【ルールR2】${prod.name} が1銘柄で ${w.toFixed(1)}%（上限 ${pol.maxSingleStockPct}%）。`);
+  }
+
+  // R3 個別株の見直しライン
+  for (const h of p.holdings) {
+    const prod = productOf(p, h.productKey);
+    if (prod?.kind !== "stock" || !h.cost) continue;
+    const v = holdingValue(p, h);
+    const pct = ((v - h.cost) / h.cost) * 100;
+    if (pct > -pol.stockReviewDrawdownPct) continue;
+    const planned = prod.planned === "sell" || prod.planned === "review";
+    raise(`review:dd:${prod.key}`, planned ? "info" : "warn",
+      `【ルールR3】${prod.name} が取得価格から ${pct.toFixed(1)}%（${yen(v - h.cost)}）。` +
+      (planned ? (prod.planned === "sell" ? "移行プランで売却予定。" : "移行プランで残すかどうか選別中（s07）。") : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
+        (prod.exitRule ? `撤退条件:「${prod.exitRule}」` : "撤退条件が未記録。")));
+  }
+
+  // R9 安全資産の下限
+  const safeW = (((s.byClass.safe || 0) + (s.byClass.cash || 0)) / T) * 100;
+  if (safeW < pol.minSafeWeightPct)
+    raise("floor:safe", "warn", `【ルールR9】安全資産（国債・現金）が ${safeW.toFixed(1)}%（下限 ${pol.minSafeWeightPct}%）。個人向け国債の購入を検討。`);
+  const liqW = ((s.byClass.cash || 0) / T) * 100;
+  if (pol.minLiquidPct && liqW < pol.minLiquidPct)
+    raise("floor:liquid", "info", `【ルールR9】すぐ動かせる現金等が ${liqW.toFixed(1)}%（目安 ${pol.minLiquidPct}%以上）。個人向け国債は発行後1年は換金できないため、急な出費や下落時の買い増し用に現金を残す。`);
+
+  // R4 年末の損出し
+  const month = Number(today.slice(5, 7));
+  if ((pol.taxHarvestMonths || []).includes(month)) {
+    const losers = p.holdings
+      .filter((h) => h.account === "特定" && h.cost && !["gold_jpyg", "manual"].includes(productOf(p, h.productKey)?.kind) && !productOf(p, h.productKey)?.leveraged)
+      .map((h) => ({ h, pl: holdingValue(p, h) - h.cost }))
+      .filter((x) => x.pl < -1000);
+    if (losers.length) {
+      const sum = losers.reduce((a, x) => a + x.pl, 0);
+      raise(`tax:harvest:${today.slice(0, 4)}`, month === 12 ? "warn" : "info",
+        `【ルールR4】特定口座に含み損 ${yen(sum)}（${losers.map((x) => productOf(p, x.h.productKey).name).join("、")}）。今年の特定口座に実現益（配当を含む）があれば、年内（受渡ベース）に確定して最大 約${yen(-sum * 0.20315)} の税金が戻る。残したい銘柄は売って翌営業日以降に買い戻せる。国内株は12/28約定、米国株・海外資産の投信は12月中旬が目安。通算しきれない分は確定申告で3年繰越。`);
     }
   }
-  // 比率ルールは資産クラスではなく商品種別で判定する
-  // （日本株式クラスでも投資信託(Tracers等)は投信7割側にカウント）
-  const stockW = ((byKind["stock"] || 0) / total) * 100;
-  if (stockW > p.policy.maxStockWeightPct) {
-    upsertAlert("cap:stock", "action",
-      `【上限超過】個別株比率が ${stockW.toFixed(1)}% となり上限 ${p.policy.maxStockWeightPct}% を超えています。新規の個別株購入を停止し、投信側の積立で希釈してください。`);
-  } else {
-    closeAlert("cap:stock");
-  }
-  const fundW = ((byKind["fund"] || 0) / total) * 100;
-  if (fundW < p.policy.minFundWeightPct) {
-    upsertAlert("floor:fund", "warn",
-      `【配分注意】投資信託比率が ${fundW.toFixed(1)}% と、方針の ${p.policy.minFundWeightPct}% を下回っています。`);
-  } else {
-    closeAlert("floor:fund");
-  }
 }
 
-const month = Number(today.slice(5, 7));
+// 移行プランの期限
+for (const st of openSteps) {
+  if (!st.due) continue;
+  const days = (new Date(st.due) - new Date(today)) / 86400e3;
+  if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
+  else if (days <= 7) raise(`plan:soon:${st.id}`, st.urgent ? "action" : "info", `【移行プラン・今週】${st.title}（期限 ${st.due}、あと${Math.round(days)}日）。${st.detail || ""}`);
+}
+
+// 週次レビューの停止検知
+const lastClaude = [...(p.aiLog || [])].reverse().find((l) => l.actor === "claude");
+const staleDays = lastClaude ? (new Date(today) - new Date(lastClaude.date)) / 86400e3 : Infinity;
+if (staleDays > (pol.reviewStaleDays || 9))
+  raise("review:stale", "warn",
+    `【体制】Claudeの週次レビュー記録が ${Number.isFinite(staleDays) ? Math.round(staleDays) + "日" : "一度も"}途絶えています（最終 ${lastClaude?.date || "なし"}）。Routine の稼働を確認してください。`);
+
+// 定期点検（1月・7月）
 const ym = today.slice(0, 7);
-if ((p.policy.regularRebalanceMonths || []).includes(month)) {
-  const id = `regular-check:${ym}`;
-  if (!alerts.some((a) => a.id === id)) {
-    alerts.push({ id, date: today, level: "info", status: "open",
-      message: `【定期点検】半年に1回のリバランス点検月です（${ym}）。配分・リスク許容度・NISA枠の消化状況を確認してください。` });
+if ((pol.regularRebalanceMonths || []).includes(Number(today.slice(5, 7))) && !alerts.some((a) => a.id === `regular-check:${ym}`)) {
+  alerts.push({ id: `regular-check:${ym}`, date: today, level: "info", status: "open",
+    message: `【定期点検】半年に1回の点検月です（${ym}）。配分・前提・リスク許容度・NISA枠を確認。` });
+}
+
+// 今回発生しなかった管理対象アラートは自動クローズ
+for (const a of alerts) {
+  if (a.status === "open" && MANAGED.some((m) => a.id.startsWith(m)) && !raised.has(a.id)) {
+    a.status = "done";
+    a.closedDate = today;
   }
 }
-p.alerts = alerts.slice(-100);
+p.alerts = alerts.filter((a) => a.status === "open").concat(alerts.filter((a) => a.status !== "open").slice(-60));
 
 /* ---------- ログと保存 ---------- */
+const openActions = p.alerts.filter((a) => a.status === "open" && a.level === "action").length;
 p.lastUpdated = new Date().toISOString();
-p.aiLog = (p.aiLog || []).concat({
+p.aiLog = trimAiLog((p.aiLog || []).concat({
   date: today,
   actor: "github-actions",
-  message: `価格を自動更新（成功 ${ok} / 失敗 ${ng}）。評価額合計 ${total > 0 ? yen(total) : "—（保有未登録）"}。未対応アラート ${p.alerts.filter((a) => a.status === "open" && a.level !== "info").length} 件。`,
-}).slice(-60);
+  message: `価格を自動更新（成功 ${ok} / 失敗 ${ng}）。評価額合計 ${s.total > 0 ? yen(s.total) : "—"}。要対応アラート ${openActions} 件。`,
+}));
 
 fs.writeFileSync(PATH, JSON.stringify(p, null, 2) + "\n");
-log(`完了: 価格 ${ok}件成功 / ${ng}件失敗, 評価額合計 ${Math.round(total)}`);
+log(`完了: 価格 ${ok}件成功 / ${ng}件失敗, 評価額合計 ${Math.round(s.total)}`);
 if (ok === 0 && p.products.length > 0) {
   console.error("すべての価格取得に失敗しました");
   process.exit(1);
