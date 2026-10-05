@@ -226,8 +226,25 @@ if (s.complete && s.total > 0) {
       .filter((x) => x.pl < -1000);
     if (losers.length) {
       const sum = losers.reduce((a, x) => a + x.pl, 0);
+      const L = -sum; // 追加で確定できる損失
+      const names = losers.map((x) => productOf(p, x.h.productKey).name).join("、");
+      // 今年の特定口座の実現損益（楽天CSVで確認済みの分）に基づいて、還付の見込みを書き分ける
+      const t = p.tax && p.tax.year === Number(today.slice(0, 4)) ? p.tax : null;
+      const N = t?.realizedSpecific ? (t.realizedSpecific.total ?? t.realizedSpecific.domesticStocks) : null;
+      let effect;
+      if (N == null) {
+        effect = `今年の特定口座に実現益（配当を含む）があれば、年内（受渡ベース）に確定して最大 約${yen(L * 0.20315)} の税金が戻る。`;
+      } else if (t.complete) {
+        effect = N > 0
+          ? `今年の特定口座の実現益は ${yen(N)}（確認済み）。損失を確定すると、そのうち ${yen(Math.min(L, N))} と相殺されて約 ${yen(Math.min(L, N) * 0.20315)} の税金が戻る。`
+          : `今年の特定口座は ${yen(N)}（確認済み）で相殺できる利益がなく、当年の還付はない。確定申告で損失を3年繰り越せる。`;
+      } else {
+        effect = N < 0
+          ? `今年の特定口座は国内株で既に ${yen(N)}（確認済み）。投信・米国株の売却益と配当（未確認）が合計 ${yen(-N)} を超えた分だけ、損出しで税金が戻る（最大 約${yen(L * 0.20315)}）。`
+          : `今年の特定口座の確認済みの実現益は ${yen(N)}。投信・米国株の売却益と配当（未確認）を加えた利益の範囲で、損出しで税金が戻る（最大 約${yen(L * 0.20315)}）。`;
+      }
       raise(`tax:harvest:${today.slice(0, 4)}`, month === 12 ? "warn" : "info",
-        `【ルールR4】特定口座に含み損 ${yen(sum)}（${losers.map((x) => productOf(p, x.h.productKey).name).join("、")}）。今年の特定口座に実現益（配当を含む）があれば、年内（受渡ベース）に確定して最大 約${yen(-sum * 0.20315)} の税金が戻る。残したい銘柄は売って翌営業日以降に買い戻せる。国内株は12/28約定、米国株・海外資産の投信は12月中旬が目安。通算しきれない分は確定申告で3年繰越。`);
+        `【ルールR4】特定口座に含み損 ${yen(sum)}（${names}）。${effect}残したい銘柄は売って翌営業日以降に買い戻せる。国内株は12/28約定、米国株・海外資産の投信は12月中旬が目安。通算しきれない分は確定申告で3年繰越。`);
     }
   }
 }
