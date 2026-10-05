@@ -150,6 +150,8 @@
   .st-chip{font-size:10.5px;text-align:center;padding:2px 0;border-radius:9px;background:#EEF1EC;color:var(--ink-soft)}
   .st-chip.done{background:#EEF4EF;color:#2E5E4E}
   .st-chip.soon{background:#F5EEDC;color:#8A6A1E;font-weight:600}
+  .st-chip.skipped{background:#EEF1EC;color:var(--ink-soft)}
+  .steps li.st-skipped .st-title{color:var(--ink-soft);text-decoration:line-through}
   .st-chip.overdue{background:#F6E3E1;color:#C0392F;font-weight:600}
   .st-body{display:flex;flex-direction:column}
   .st-detail{font-size:11.5px;color:var(--ink-soft)}
@@ -1036,15 +1038,16 @@ function renderPf(p){
 
   /* --- PJ見出しと進捗 --- */
   const steps = ((p.plan||{}).steps)||[];
-  const doneN = steps.filter(s=> s.status === "done").length;
-  const stepState = s => s.status === "done" ? "done" : (s.due && s.due < today ? "overdue" : (s.due && (new Date(s.due)-new Date(today))/86400e3 <= 7 ? "soon" : "todo"));
-  const curPhase = (((p.plan||{}).phases)||[]).find(ph=> steps.some(s=> s.phase === ph.id && s.status !== "done"));
+  const activeSteps = steps.filter(s=> s.status !== "skipped");
+  const doneN = activeSteps.filter(s=> s.status === "done").length;
+  const stepState = s => s.status === "done" ? "done" : s.status === "skipped" ? "skipped" : (s.due && s.due < today ? "overdue" : (s.due && (new Date(s.due)-new Date(today))/86400e3 <= 7 ? "soon" : "todo"));
+  const curPhase = (((p.plan||{}).phases)||[]).find(ph=> steps.some(s=> s.phase === ph.id && s.status !== "done" && s.status !== "skipped"));
   const proj = p.project || {};
   const headHtml = proj.name ? `<div class="pj-head">
       <div><div class="pj-name">${esc(proj.name)}</div>
       <div class="pj-goal">${esc(proj.goal||"")}　<span class="pj-meta">発足 ${esc(proj.startedAt||"")}</span></div></div>
-      <div class="pj-prog"><div class="pj-prog-label num">移行プラン ${doneN} / ${steps.length}${curPhase ? `　現在：Phase ${curPhase.id} ${esc(curPhase.name)}` : "　完了"}</div>
-      <div class="bar-track"><div class="bar-now" style="width:${steps.length? (doneN/steps.length*100).toFixed(1):0}%;background:#234A6B"></div></div></div>
+      <div class="pj-prog"><div class="pj-prog-label num">移行プラン ${doneN} / ${activeSteps.length}${curPhase ? `　現在：Phase ${curPhase.id} ${esc(curPhase.name)}` : "　完了"}</div>
+      <div class="bar-track"><div class="bar-now" style="width:${activeSteps.length? (doneN/activeSteps.length*100).toFixed(1):0}%;background:#234A6B"></div></div></div>
     </div>` : "";
 
   /* --- アラート --- */
@@ -1111,16 +1114,16 @@ function renderPf(p){
   </div>`;
 
   /* --- 移行プラン --- */
-  const stLabel = {done:"完了", overdue:"期限超過", soon:"今週", todo:"予定"};
+  const stLabel = {done:"完了", overdue:"期限超過", soon:"今週", todo:"予定", skipped:"見送り"};
   const planHtml = (((p.plan||{}).phases)||[]).map(ph=>{
     const ss = steps.filter(s=> s.phase === ph.id);
-    const dn = ss.filter(s=> s.status === "done").length;
+    const dn = ss.filter(s=> s.status === "done").length, sn = ss.filter(s=> s.status !== "skipped").length;
     const items = ss.map(s=>{ const st = stepState(s); return `<li class="st-${st}">
         <span class="st-chip ${st}">${stLabel[st]}</span>
         <span class="st-body"><span class="st-title">${esc(s.title)}</span>${s.detail ? `<span class="st-detail">${esc(s.detail)}</span>` : ""}</span>
         <span class="st-due num">${s.status === "done" ? esc(s.doneDate||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
       </li>`; }).join("");
-    return `<div class="phase"><div class="phase-h"><span>Phase ${ph.id}　${esc(ph.name)}</span><span class="phase-m">${esc(ph.period)}・${dn}/${ss.length}</span></div>
+    return `<div class="phase"><div class="phase-h"><span>Phase ${ph.id}　${esc(ph.name)}</span><span class="phase-m">${esc(ph.period)}・${dn}/${sn}</span></div>
       <div class="phase-g">${esc(ph.goal)}</div>${ss.length ? `<ul class="steps">${items}</ul>` : ""}</div>`;
   }).join("");
 
