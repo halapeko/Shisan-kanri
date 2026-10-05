@@ -1214,7 +1214,7 @@ function renderPf(p){
     ${alertsHtml}
     <div class="pf-sub">運用状況</div>
     ${kpiHtml}
-    ${optHtml ? `<div class="pf-sub">基本配分の案（あなたが選びます）</div>${optHtml}${decHtml}` : ""}
+    ${optHtml ? `<div class="pf-sub">基本配分の案${p.activeOptionStatus === "adopted" ? "（採用済み）" : "（あなたが選びます）"}</div>${optHtml}${decHtml}` : ""}
     <div class="pf-sub">アセットアロケーション（縦線＝基本配分、淡色帯＝±${band}%の許容範囲）</div>
     ${allocHtml}
     ${ruleChips}

@@ -111,6 +111,7 @@ for (const r of p.recurring || []) {
   if (p.nisa?.usedThisYear && r.account.startsWith("NISA") && p.nisa.usedThisYear.year === Number(today.slice(0, 4))) {
     const k = r.account === "NISAつみたて" ? "tsumitate" : "growth";
     if (p.nisa.usedThisYear[k] != null) p.nisa.usedThisYear[k] += r.yen;
+    if (p.nisa.scheduledThisYear?.[k] > 0) p.nisa.scheduledThisYear[k] = Math.max(0, p.nisa.scheduledThisYear[k] - r.yen);
   }
   if (p.nisa && r.account.startsWith("NISA") && p.nisa.usedLifetime != null) p.nisa.usedLifetime += r.yen;
   log(`積立を推定反映: ${prod.name} ${r.yen}円 → ${units}口（${r.account}）`);
