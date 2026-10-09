@@ -51,10 +51,19 @@ async function yahooLast(symbol) {
   const j = await res.json();
   const r = j?.chart?.result?.[0];
   if (!r) throw new Error(j?.chart?.error?.description || "chart API 応答が不正");
-  const closes = (r.indicators?.quote?.[0]?.close || []).filter((v) => v != null);
-  const price = closes.at(-1) ?? r.meta?.regularMarketPrice;
+  // 日足の最終バーは、取引時間中だと未確定の途中値になる。日次処理は日本時間の午前に走るため、
+  // 取引中のバーは捨てて「直近の確定した終値」を使う（取引時間は currentTradingPeriod で判定）
+  const stamps = r.timestamp || [];
+  const closes = r.indicators?.quote?.[0]?.close || [];
+  const reg = r.meta?.currentTradingPeriod?.regular;
+  const nowSec = Date.now() / 1000;
+  let n = closes.length;
+  while (n > 0 && closes[n - 1] == null) n--;
+  if (n > 0 && reg && stamps[n - 1] >= reg.start && stamps[n - 1] <= reg.end && nowSec < reg.end) n--; // 取引中の途中バー
+  while (n > 0 && closes[n - 1] == null) n--;
+  const price = n > 0 ? closes[n - 1] : r.meta?.regularMarketPrice;
   if (!Number.isFinite(price)) throw new Error("終値を取得できませんでした");
-  const ts = r.meta?.regularMarketTime;
+  const ts = n > 0 && stamps[n - 1] ? stamps[n - 1] : r.meta?.regularMarketTime;
   const date = ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10) : today;
   return { date, price };
 }
@@ -106,6 +115,8 @@ for (const r of p.recurring || []) {
   h.units = (h.units || 0) + units;
   h.cost = (h.cost || 0) + r.yen;
   h.estimated = true;
+  h.estimatedCost = (h.estimatedCost || 0) + r.yen;
+  h.estimatedSince = h.estimatedSince || today;
   r.lastApplied = ym;
   recurringFlow += r.yen;
   if (p.nisa?.usedThisYear && r.account.startsWith("NISA") && p.nisa.usedThisYear.year === Number(today.slice(0, 4))) {
@@ -143,7 +154,7 @@ for (const st of p.plan?.steps || []) {
 /* ---------- アラート ---------- */
 const alerts = p.alerts || [];
 const raised = new Set();
-const MANAGED = ["drift:", "cap:", "ban:", "review:", "floor:", "tax:", "plan:"];
+const MANAGED = ["drift:", "cap:", "ban:", "review:", "floor:", "tax:", "plan:", "verify:estimated", "stale:"];
 function raise(id, level, message) {
   raised.add(id);
   const ex = alerts.find((a) => a.id === id && a.status === "open");
@@ -194,6 +205,8 @@ if (s.complete && s.total > 0) {
     const w = ((s.byProduct[prod.key] || 0) / T) * 100;
     if (pol.maxSingleStockPct && w > pol.maxSingleStockPct)
       raise(`cap:single:${prod.key}`, "action", `【ルールR2】${prod.name} が1銘柄で ${w.toFixed(1)}%（上限 ${pol.maxSingleStockPct}%）。`);
+    else if (!pol.maxSingleStockPct && pol.proposedMaxSingleStockPct && w > pol.proposedMaxSingleStockPct)
+      raise(`cap:single-proposed:${prod.key}`, "info", `【参考】${prod.name} は1銘柄で ${w.toFixed(1)}%。提案中の上限（${pol.proposedMaxSingleStockPct}%、s06で決定）を超えています。`);
   }
 
   // R3 個別株の見直しライン
@@ -204,7 +217,7 @@ if (s.complete && s.total > 0) {
     const pct = ((v - h.cost) / h.cost) * 100;
     if (pct > -pol.stockReviewDrawdownPct) continue;
     const planned = prod.planned === "sell" || prod.planned === "review";
-    raise(`review:dd:${prod.key}`, planned ? "info" : "warn",
+    raise(`review:dd:${prod.key}`, planned && pct > -20 ? "info" : "warn",
       `【ルールR3】${prod.name} が取得価格から ${pct.toFixed(1)}%（${yen(v - h.cost)}）。` +
       (planned ? (prod.planned === "sell" ? "移行プランで売却予定。" : "移行プランで残すかどうか選別中（s07）。") : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
         (prod.exitRule ? `撤退条件:「${prod.exitRule}」` : "撤退条件が未記録。")));
@@ -212,7 +225,8 @@ if (s.complete && s.total > 0) {
 
   // R9 安全資産の下限
   const safeW = (((s.byClass.safe || 0) + (s.byClass.cash || 0)) / T) * 100;
-  if (safeW < pol.minSafeWeightPct)
+  // 下限ぎりぎりで警告が出入りしないよう、0.5pt 下回ったときに出す
+  if (safeW < pol.minSafeWeightPct - 0.5)
     raise("floor:safe", "warn", `【ルールR9】安全資産（国債・現金）が ${safeW.toFixed(1)}%（下限 ${pol.minSafeWeightPct}%）。個人向け国債の購入を検討。`);
   const liqW = ((s.byClass.cash || 0) / T) * 100;
   if (pol.minLiquidPct && liqW < pol.minLiquidPct)
@@ -257,6 +271,21 @@ for (const st of openSteps) {
   const days = (new Date(st.due) - new Date(today)) / 86400e3;
   if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
   else if (days <= 7) raise(`plan:soon:${st.id}`, st.urgent ? "action" : "info", `【移行プラン・今週】${st.title}（期限 ${st.due}、あと${Math.round(days)}日）。${st.detail || ""}`);
+}
+
+// 積立の推定反映が、CSVで実数に置き換わらないまま放置されていないか
+for (const h of p.holdings) {
+  if (!h.estimatedCost || !h.estimatedSince) continue;
+  const days = (new Date(today) - new Date(h.estimatedSince)) / 86400e3;
+  if (days >= 10)
+    raise(`verify:estimated:${h.productKey}:${h.account}`, "info",
+      `【要確認】${productOf(p, h.productKey)?.name || h.productKey}（${h.account}）に ${yen(h.estimatedCost)} の積立を推定で反映したまま ${Math.round(days)} 日経っています。楽天証券の保有一覧（CSV）を貼ると実数に置き換わります。`);
+}
+// 保有中の商品の価格が古い（取得に失敗し続けている）
+for (const prod of p.products) {
+  if (!held.has(prod.key) || !prod.priceDate || !["fund", "stock", "gold_jpyg"].includes(prod.kind)) continue;
+  const age = (new Date(today) - new Date(prod.priceDate)) / 86400e3;
+  if (age >= 6) raise(`stale:price:${prod.key}`, "warn", `【データ】${prod.name} の価格が ${Math.round(age)} 日前（${prod.priceDate}）のままです。取得に失敗している可能性があります。`);
 }
 
 // 週次レビューの停止検知

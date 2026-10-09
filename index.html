@@ -1014,7 +1014,7 @@ function modifiedDietz(history, start){
   const denom = win[0].total + wF;
   if(denom <= 0) return null;
   const r = (end.total - win[0].total - F)/denom;
-  return { periodDays:T, r, annualized: T >= 60 ? Math.pow(1+r, 365/T) - 1 : null };
+  return { periodDays:T, r, annualized: T >= 365 ? Math.pow(1+r, 365/T) - 1 : null };
 }
 
 function renderPf(p){
@@ -1064,10 +1064,10 @@ function renderPf(p){
   const wTgt = {}; (p.assetClasses||[]).forEach(c=> wTgt[c.key] = c.targetPct/100);
   const sTgt = portfolioStats(p, wTgt);
   const dz = modifiedDietz(p.history, (p.project||{}).performanceStart);
-  const tgtR = pol.targetAnnualReturnPct || 6, rng = pol.targetRangePct || [5,8];
+  const tgtR = pol.targetAnnualReturnPct || 5.4, rng = pol.targetRangePct || [5,6];
   let realHtml = "—", realCls = "";
   if(dz && dz.annualized != null){ const a = dz.annualized*100; realCls = a >= rng[0] ? "plus" : "minus"; realHtml = pct(a,2) + `<span class="kpi-sub">直近${Math.round(dz.periodDays)}日・年率</span>`; }
-  else if(dz){ realHtml = pct(dz.r*100,2) + `<span class="kpi-sub">PJ発足から${Math.round(dz.periodDays)}日の累計（60日以降は年率表示）</span>`; }
+  else if(dz){ realHtml = pct(dz.r*100,2) + `<span class="kpi-sub">計測開始から${Math.round(dz.periodDays)}日の累計。短期の値動きなので良し悪しは判断できません（年率は1年後から表示）</span>`; }
   else { realHtml = `<span style="font-size:15px">計測開始</span><span class="kpi-sub">PJ発足日（${esc((p.project||{}).performanceStart||"")}）から計測。2営業日目から表示</span>`; }
   const upd = p.lastUpdated ? new Date(p.lastUpdated) : null;
   const updStr = upd ? `${upd.getMonth()+1}/${upd.getDate()} ${String(upd.getHours()).padStart(2,"0")}:${String(upd.getMinutes()).padStart(2,"0")}` : "—";

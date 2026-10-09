@@ -44,9 +44,10 @@ export function summarize(p) {
 // account は文字列か配列（NISAつみたての自動積立をまとめ買いと区別するため）
 export function costOf(p, productKey, account) {
   const ok = (a) => !account || (Array.isArray(account) ? account.includes(a) : a === account);
+  // 積立の推定反映分（estimatedCost）は、楽天CSVで実数に置き換わるまで数えない
   return p.holdings
     .filter((h) => h.productKey === productKey && ok(h.account))
-    .reduce((s, h) => s + (h.cost || 0), 0);
+    .reduce((s, h) => s + Math.max(0, (h.cost || 0) - (h.estimatedCost || 0)), 0);
 }
 
 // 計画ステップの自動完了判定
@@ -57,7 +58,7 @@ export function stepAutoDone(p, step) {
     return !p.holdings.some((h) => h.productKey === a.productKey && (!a.account || h.account === a.account));
   if (a.type === "costAtLeast") return costOf(p, a.productKey, a.account) >= a.yen;
   if (a.type === "classCostAtLeast")
-    return p.holdings.filter((h) => productOf(p, h.productKey)?.classKey === a.classKey).reduce((s, h) => s + (h.cost || 0), 0) >= a.yen;
+    return p.holdings.filter((h) => productOf(p, h.productKey)?.classKey === a.classKey).reduce((s, h) => s + Math.max(0, (h.cost || 0) - (h.estimatedCost || 0)), 0) >= a.yen;
   const held = new Set(p.holdings.map((h) => h.productKey));
   const heldStocks = p.products.filter((x) => x.kind === "stock" && held.has(x.key));
   // 残す銘柄が決まり（選別中が無い）、残す銘柄すべてに理由と撤退条件がある
