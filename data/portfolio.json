@@ -267,7 +267,8 @@
       "leveraged": 4.3,
       "note": "日々の値動きが日本株の約4.3倍。2027-09-07償還予定",
       "price": 81614,
-      "priceDate": "2026-10-09"
+      "priceDate": "2026-10-09",
+      "soldAt": "2026-10-13"
     },
     {
       "key": "sp500",
@@ -411,9 +412,10 @@
       "classKey": "stock",
       "ticker": "6981.T",
       "currency": "JPY",
-      "planned": "review",
+      "planned": "sell",
       "price": 7970,
-      "priceDate": "2026-10-09"
+      "priceDate": "2026-10-09",
+      "soldAt": "2026-10-13"
     },
     {
       "key": "vrt",
@@ -470,12 +472,6 @@
       "account": "NISA成長",
       "units": 16208,
       "cost": 50000
-    },
-    {
-      "productKey": "sbi43bull",
-      "account": "特定",
-      "units": 18434,
-      "cost": 180000
     },
     {
       "productKey": "sp500",
@@ -556,19 +552,21 @@
       "cost": 131780
     },
     {
-      "productKey": "murata",
-      "account": "特定",
-      "shares": 5,
-      "cost": 55345
-    },
-    {
       "productKey": "vrt",
       "account": "特定",
       "shares": 3,
       "cost": 159541
+    },
+    {
+      "productKey": "cash_jpy",
+      "account": "-",
+      "valueOverride": 190297,
+      "cost": 190297,
+      "estimated": true,
+      "note": "売却代金の見積もり（10/9の終値・基準価額で計算）。受渡後に楽天CSVで実数に置き換える"
     }
   ],
-  "holdingsAsOf": "2026-10-03",
+  "holdingsAsOf": "2026-10-13（利用者の売却報告を反映。売却額は見積もり）",
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
@@ -634,7 +632,9 @@
         "title": "【今日〜日曜】積立設定画面で、11/1分の買付が「全世界株式・10万円」になっていることを確認",
         "detail": "楽天カード決済の積立は前月12日締め。10/12は祝日のため、10/11（日）までに確認し、違っていれば直す。設定画面の文字か写真をチャットで送れば記録する",
         "auto": null,
-        "status": "todo"
+        "status": "done",
+        "doneDate": "2026-10-13",
+        "note": "利用者が積立設定画面で、11/1分の買付がオルカンに切り替わっていることを確認"
       },
       {
         "id": "s02",
@@ -667,7 +667,9 @@
           "type": "noHolding",
           "productKey": "sbi43bull"
         },
-        "status": "todo"
+        "status": "done",
+        "doneDate": "2026-10-13",
+        "note": "利用者の報告で売却。売却額はCSVで確定する"
       },
       {
         "id": "s05",
@@ -737,7 +739,10 @@
           ],
           "yen": 100000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       },
       {
         "id": "s11",
@@ -753,7 +758,10 @@
           ],
           "yen": 200000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       },
       {
         "id": "s12",
@@ -805,7 +813,10 @@
           ],
           "yen": 540000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       },
       {
         "id": "s16",
@@ -818,7 +829,10 @@
           "productKey": "allcountry",
           "yen": 940000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       },
       {
         "id": "s17",
@@ -840,7 +854,10 @@
           "productKey": "allcountry",
           "yen": 1040000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       },
       {
         "id": "s19",
@@ -862,7 +879,10 @@
           "productKey": "allcountry",
           "yen": 1140000
         },
-        "status": "todo"
+        "status": "todo",
+        "covers": [
+          "jpIdx"
+        ]
       }
     ]
   },
@@ -1773,8 +1793,9 @@
       "date": "2026-10-05",
       "level": "action",
       "message": "【ルールR1違反】SBI日本株4.3ブル（¥150,447、実効 ¥646,923 相当）を保有中。レバレッジ商品は持たないルール。日々の値動きが日本株の約4.3倍。2027-09-07償還予定",
-      "status": "open",
-      "updated": "2026-10-13"
+      "status": "done",
+      "updated": "2026-10-13",
+      "closedDate": "2026-10-13"
     },
     {
       "id": "cap:stock",
@@ -1797,8 +1818,9 @@
       "date": "2026-10-05",
       "level": "warn",
       "message": "【ルールR3】村田製作所 が取得価格から -28.0%（-¥15,495）。移行プランで残すかどうか選別中（s07）。",
-      "status": "open",
-      "updated": "2026-10-13"
+      "status": "done",
+      "updated": "2026-10-13",
+      "closedDate": "2026-10-13"
     },
     {
       "id": "review:dd:vrt",
@@ -1821,8 +1843,9 @@
       "date": "2026-10-09",
       "level": "info",
       "message": "【移行プラン・今週】SBI日本株4.3ブルを全売却（期限 2026-10-16、あと3日）。原典ルールB（R1）違反。2027-09-07償還予定。買い戻さない。期限の10/16に近い発注は避け、10/14（水）までの発注を目安にする（約定から受渡までの日数のため）",
-      "status": "open",
-      "updated": "2026-10-13"
+      "status": "done",
+      "updated": "2026-10-13",
+      "closedDate": "2026-10-13"
     },
     {
       "id": "plan:soon:s06",
@@ -2208,6 +2231,11 @@
       "date": "2026-10-13",
       "actor": "github-actions",
       "message": "価格を自動更新（成功 17 / 失敗 0）。評価額合計 ¥3,732,576。要対応アラート 3 件。"
+    },
+    {
+      "date": "2026-10-13",
+      "actor": "claude",
+      "message": "利用者の報告を反映：積立設定で11/1分がオルカンに切り替わっていることを確認（s01b完了）。SBI日本株4.3ブル（見積もり売却額150,447円、損益-29,553円）と村田製作所（同39,850円、-15,495円）を売却（s04完了、ルールR1違反を解消）。売却代金は円預り金として待機資金に計上。売却額は10/9の終値・基準価額による見積もりで、楽天CSVで確定させる。"
     }
   ],
   "options": [
@@ -2265,14 +2293,15 @@
       "domesticStocks": -31929,
       "usStocks": 22945,
       "funds": 0,
-      "total": -8984
+      "total": -8984,
+      "estimatedAdditional": -45048
     },
     "dividendsSpecific": {
       "gross": 2614,
       "withheld": 509,
       "net": 2105
     },
-    "taxableNet": -6370,
+    "taxableNet": -51418,
     "refundScheduled": 509,
     "realizedNisa": {
       "domesticStocks": 68740,
@@ -2281,6 +2310,18 @@
       "total": 164606,
       "note": "NISA内の損益は税金に影響しない。売却しても今年の年間枠は戻らない（生涯枠は翌年に簿価分戻る）"
     },
-    "note": "今年の特定口座は通算後 -6,370円（譲渡損益 -8,984円＋配当 2,614円）。相殺できる利益がなく、損出しをしても今年の還付は増えない（配当の源泉税509円は特定口座内の通算で戻る予定）。損失は確定申告で3年繰越できるが、将来 特定口座に利益が出る場合にだけ意味がある"
+    "note": "今年の特定口座は通算後 -6,370円（譲渡損益 -8,984円＋配当 2,614円）。相殺できる利益がなく、損出しをしても今年の還付は増えない（配当の源泉税509円は特定口座内の通算で戻る予定）。損失は確定申告で3年繰越できるが、将来 特定口座に利益が出る場合にだけ意味がある。2026-10-13にSBI日本株4.3ブル・村田製作所を売却（見積もりの実現損益 -45,048円）。通算後は約-51,418円の見込み。年内に含み益の銘柄を売っても、この範囲までは課税されない",
+    "pendingSales": [
+      {
+        "name": "SBI日本株4.3ブル",
+        "estimatedPl": -29553,
+        "date": "2026-10-13"
+      },
+      {
+        "name": "村田製作所",
+        "estimatedPl": -15495,
+        "date": "2026-10-13"
+      }
+    ]
   }
 }
