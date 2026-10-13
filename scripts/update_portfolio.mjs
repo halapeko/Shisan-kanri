@@ -169,6 +169,7 @@ const stepsForClass = (ck) =>
   openSteps.filter((x) =>
     (x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck) ||
     x.auto?.classKey === ck ||
+    (x.covers || []).includes(ck) || // 他のクラスを買い増すことで比率を下げる計画（例: オルカンの積立で日本株投信の比率を下げる）
     (ck === "stock" && STOCK_STEPS.includes(x.auto?.type)));
 
 if (s.complete && s.total > 0) {
