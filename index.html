@@ -1088,7 +1088,7 @@ function renderPf(p){
     <tbody>${optRows.map(r=> `<tr class="${r.active?"active":""}"><td>${esc(r.name)}${r.active ? ` <span class="tag ${p.activeOptionStatus==="provisional"?"warn":"ok"}">${p.activeOptionStatus==="provisional"?"暫定適用中":"採用中"}</span>` : ""}</td>
       <td class="num">${r.st.equity.toFixed(0)}%</td><td class="num">${r.st.fx.toFixed(0)}%</td><td class="num"><strong>${r.st.geo.toFixed(1)}%</strong></td><td class="num">${r.st.sd.toFixed(1)}%</td>
       <td class="num">${(r.st.pLoss10*100).toFixed(0)}%</td><td class="num">${(r.st.p10y5*100).toFixed(0)}%</td><td class="num minus">${r.st.stress.toFixed(0)}%</td></tr>`).join("")}</tbody></table></div>
-    <p class="chart-caption" style="margin-top:6px">再構築はリターンを上げるためではなく、同程度のリターンを小さな下振れで得るためのもの。株式の前提が年4.5%なら案Bは4.4%、7.5%なら6.4%。</p>` : "";
+    <p class="chart-caption" style="margin-top:6px">再構築はリターンを上げるためではなく、同程度のリターンを小さな下振れで得るためのもの。株式の前提が年4.5%なら私案は4.4%、7.5%なら6.2%。</p>` : "";
   const decs = ((p.project||{}).decisions)||[];
   const decHtml = decs.length ? `<ul class="decs">${decs.map(d=> `<li><span class="st-chip ${d.chosen?"done":"soon"}">${d.chosen?"決定":"判断待ち"}</span><span>${esc(d.title)}：${d.chosen ? "<strong>"+esc(d.chosen)+"</strong>" : esc(d.options.join("／"))}</span></li>`).join("")}</ul>` : "";
 
