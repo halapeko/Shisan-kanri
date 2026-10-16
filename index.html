@@ -1121,7 +1121,7 @@ function renderPf(p){
     const items = ss.map(s=>{ const st = stepState(s); return `<li class="st-${st}">
         <span class="st-chip ${st}">${stLabel[st]}</span>
         <span class="st-body"><span class="st-title">${esc(s.title)}</span>${s.detail ? `<span class="st-detail">${esc(s.detail)}</span>` : ""}</span>
-        <span class="st-due num">${s.status === "done" ? esc(s.doneDate||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
+        <span class="st-due num">${s.status === "done" ? esc(s.doneDate||s.doneAt||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
       </li>`; }).join("");
     return `<div class="phase"><div class="phase-h"><span>Phase ${ph.id}　${esc(ph.name)}</span><span class="phase-m">${esc(ph.period)}・${dn}/${sn}</span></div>
       <div class="phase-g">${esc(ph.goal)}</div>${ss.length ? `<ul class="steps">${items}</ul>` : ""}</div>`;
@@ -1144,7 +1144,8 @@ function renderPf(p){
     if(prod.leveraged) tags.push('<span class="tag ng">R1違反</span>');
     if(prod.planned === "sell") tags.push('<span class="tag plan">売却予定</span>');
     if(prod.planned === "review") tags.push('<span class="tag plan">選別中</span>');
-    if(h.estimated) tags.push('<span class="tag">積立を推定反映</span>');
+    if(h.estimatedCost) tags.push('<span class="tag">積立を推定反映</span>');
+    else if(h.estimated) tags.push('<span class="tag">見積もり</span>');
     if(prod.kind === "stock" && prod.planned === "keep" && !(prod.thesis && prod.exitRule)) tags.push('<span class="tag warn">撤退条件 未記録</span>');
     if(prod.kind === "stock" && plp != null && plp <= -(pol.stockReviewDrawdownPct||15)) tags.push(`<span class="tag warn">-${pol.stockReviewDrawdownPct||15}%見直し</span>`);
     if(prod.active) tags.push('<span class="tag">アクティブ</span>');
