@@ -7,7 +7,7 @@
  *    - 金現物:   GC=F × USDJPY ÷ 31.1035（円/g）
  * 2. 評価額・クラス別配分を計算し、history に日次スナップショットを追記
  * 3. 移行プランのステップを保有状況から自動完了判定
- * 4. 投資ルール v2（docs/project-v2.md 第7節）に基づくアラートの生成・自動クローズ
+ * 4. 投資ルール v2（docs/project-v2.md 第8節）に基づくアラートの生成・自動クローズ
  *
  * 依存パッケージなし（Node 20+）。
  */
@@ -42,6 +42,8 @@ async function fetchFundNav(prod) {
   return best;
 }
 
+const DEBUG_SYMBOLS = new Set(["GC=F", "ETN", "VRT"]);
+const iso = (t) => (t ? new Date(t * 1000).toISOString().slice(0, 16) + "Z" : "-");
 async function yahooLast(symbol) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
@@ -65,6 +67,10 @@ async function yahooLast(symbol) {
   if (!Number.isFinite(price)) throw new Error("終値を取得できませんでした");
   const ts = n > 0 && stamps[n - 1] ? stamps[n - 1] : r.meta?.regularMarketTime;
   const date = ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10) : today;
+  // 金・米国株が1日遅れる現象の調査用（2026-10-17〜）：末尾3本の時刻と取引時間を記録する
+  if (DEBUG_SYMBOLS.has(symbol))
+    log(`[debug] ${symbol} tz=${r.meta?.exchangeTimezoneName} regMkt=${iso(r.meta?.regularMarketTime)} reg=${iso(reg?.start)}〜${iso(reg?.end)} ` +
+      `last3=${stamps.slice(-3).map((t, i) => `${iso(t)}:${closes[closes.length - 3 + i] ?? "null"}`).join(",")} used=${iso(ts)}`);
   return { date, price };
 }
 
@@ -165,12 +171,20 @@ const yen = (n) => (n < 0 ? "-¥" : "¥") + Math.abs(Math.round(n)).toLocaleStri
 const pol = p.policy;
 const openSteps = (p.plan?.steps || []).filter((x) => x.status !== "done" && x.status !== "skipped");
 const STOCK_STEPS = ["stocksHaveThesis", "plannedSellsDone"];
-const stepsForClass = (ck) =>
-  openSteps.filter((x) =>
-    (x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck) ||
-    x.auto?.classKey === ck ||
-    (x.covers || []).includes(ck) || // 他のクラスを買い増すことで比率を下げる計画（例: オルカンの積立で日本株投信の比率を下げる）
-    (ck === "stock" && STOCK_STEPS.includes(x.auto?.type)));
+const BUY_STEPS = ["costAtLeast", "classCostAtLeast"];
+const SELL_STEPS = ["noHolding", "plannedSellsDone"];
+// d はズレの向き（+ なら比率超過、- なら不足）。超過のクラスに買い増しのステップ、不足のクラスに売却のステップは数えない
+const stepsForClass = (ck, d = 0) =>
+  openSteps.filter((x) => {
+    const covers = (x.covers || []).includes(ck); // 他のクラスを買い増すことで比率を下げる計画（例: オルカンの積立で日本株投信の比率を下げる）
+    const own = (x.auto?.productKey && productOf(p, x.auto.productKey)?.classKey === ck) || x.auto?.classKey === ck ||
+      (ck === "stock" && STOCK_STEPS.includes(x.auto?.type));
+    if (covers) return true;
+    if (!own) return false;
+    if (d > 0 && BUY_STEPS.includes(x.auto?.type)) return false;
+    if (d < 0 && SELL_STEPS.includes(x.auto?.type)) return false;
+    return true;
+  });
 
 if (s.complete && s.total > 0) {
   const T = s.total;
@@ -182,7 +196,7 @@ if (s.complete && s.total > 0) {
     const d = w - c.targetPct;
     if (Math.abs(d) <= pol.rebalanceBandPct) continue;
     const amt = (Math.abs(d) / 100) * T;
-    const steps = stepsForClass(c.key);
+    const steps = stepsForClass(c.key, d);
     const how = d > 0 ? "積立・新規購入を止めて比率を下げる" : "新規資金・積立をこのクラスへ優先して入れる";
     const msg = `【配分】${c.name} が ${w.toFixed(1)}%（基本配分 ${c.targetPct}%、${d > 0 ? "+" : ""}${d.toFixed(1)}pt）。約 ${yen(amt)} 分のズレ。${how}。` +
       (steps.length ? `移行プランで対応中（${steps.map((x) => x.id).join("・")}）。` : "");
@@ -270,17 +284,20 @@ if (s.complete && s.total > 0) {
 for (const st of openSteps) {
   if (!st.due) continue;
   const days = (new Date(st.due) - new Date(today)) / 86400e3;
+  // 申込済みで発行・受渡を待っているステップ（国債など、CSVに出るまで自動完了しない）は期限超過にしない
+  if (st.appliedAt) { raise(`plan:applied:${st.id}`, "info", `【移行プラン・申込済み】${st.title}（${st.appliedAt} 申込）。発行後に楽天の保有一覧（CSV）を貼ると完了になります。`); continue; }
   if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
   else if (days <= 7) raise(`plan:soon:${st.id}`, st.urgent ? "action" : "info", `【移行プラン・今週】${st.title}（期限 ${st.due}、あと${Math.round(days)}日）。${st.detail || ""}`);
 }
 
 // 積立の推定反映が、CSVで実数に置き換わらないまま放置されていないか
 for (const h of p.holdings) {
-  if (!h.estimatedCost || !h.estimatedSince) continue;
+  if (!h.estimatedSince || !(h.estimatedCost || h.estimated)) continue;
   const days = (new Date(today) - new Date(h.estimatedSince)) / 86400e3;
+  const what = h.estimatedCost ? `${yen(h.estimatedCost)} の積立を推定で反映したまま` : "見積もりの金額（売却代金など）のまま";
   if (days >= 10)
     raise(`verify:estimated:${h.productKey}:${h.account}`, "info",
-      `【要確認】${productOf(p, h.productKey)?.name || h.productKey}（${h.account}）に ${yen(h.estimatedCost)} の積立を推定で反映したまま ${Math.round(days)} 日経っています。楽天証券の保有一覧（CSV）を貼ると実数に置き換わります。`);
+      `【要確認】${productOf(p, h.productKey)?.name || h.productKey}（${h.account}）が${what} ${Math.round(days)} 日経っています。楽天証券の保有一覧（CSV）を貼ると実数に置き換わります。`);
 }
 // 保有中の商品の価格が古い（取得に失敗し続けている）
 for (const prod of p.products) {
