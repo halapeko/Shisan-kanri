@@ -160,7 +160,7 @@ for (const st of p.plan?.steps || []) {
 /* ---------- アラート ---------- */
 const alerts = p.alerts || [];
 const raised = new Set();
-const MANAGED = ["drift:", "cap:", "ban:", "review:", "floor:", "tax:", "plan:", "verify:estimated", "stale:"];
+const MANAGED = ["drift:", "cap:", "ban:", "review:", "floor:", "tax:", "plan:", "decision:", "verify:estimated", "stale:"];
 function raise(id, level, message) {
   raised.add(id);
   const ex = alerts.find((a) => a.id === id && a.status === "open");
@@ -288,6 +288,14 @@ for (const st of openSteps) {
   if (st.appliedAt) { raise(`plan:applied:${st.id}`, "info", `【移行プラン・申込済み】${st.title}（${st.appliedAt} 申込）。発行後に楽天の保有一覧（CSV）を貼ると完了になります。`); continue; }
   if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
   else if (days <= 7) raise(`plan:soon:${st.id}`, st.urgent ? "action" : "info", `【移行プラン・今週】${st.title}（期限 ${st.due}、あと${Math.round(days)}日）。${st.detail || ""}`);
+}
+
+// 判断事項（decisions）の期限。利用者が決めるもので、Claudeは代わりに決めない。期限切れで当初計画のままにしたもの（lapsed）は対象外
+for (const d of p.project?.decisions || []) {
+  if (d.chosen || d.lapsed || !d.due) continue;
+  const days = (new Date(d.due) - new Date(today)) / 86400e3;
+  if (days < 0) raise(`decision:overdue:${d.id}`, "action", `【判断待ち・期限超過】${d.title}（期限 ${d.due}）。回答をチャットで伝えてください。${d.note || ""}`);
+  else if (days <= 7) raise(`decision:soon:${d.id}`, "info", `【判断待ち】${d.title}（期限 ${d.due}、あと${Math.round(days)}日）。`);
 }
 
 // 積立の推定反映が、CSVで実数に置き換わらないまま放置されていないか
