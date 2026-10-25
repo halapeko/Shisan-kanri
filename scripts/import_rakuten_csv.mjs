@@ -2,7 +2,9 @@
  * 楽天証券「保有商品一覧（すべて）」CSV（assetbalanceall_*.csv, Shift_JIS）から
  * data/portfolio.json の保有を全面更新する。
  *
- *   node scripts/import_rakuten_csv.mjs <csvファイル> [--data <portfolio.json>] [--date YYYY-MM-DD] [--dry-run]
+ *   node scripts/import_rakuten_csv.mjs <csvファイル> [--data <portfolio.json>] [--date YYYY-MM-DD] [--flow 円] [--dry-run]
+ *   --flow: 前回の取り込み以降に、日次処理の積立以外で新しく入金した額（既定 0）。
+ *           売却・買い替え・積立の実数への置き換えは入金ではないので含めない
  *
  * - CSVは保有の完全なスナップショットとして扱い、holdings を置き換える
  * - 既存の商品とは銘柄コード（株）／名称（投信）で照合する
@@ -12,11 +14,14 @@ import fs from "node:fs";
 import { jstToday, summarize, trimAiLog } from "./lib.mjs";
 
 const args = process.argv.slice(2);
-const csvPath = args.find((a) => !a.startsWith("--") && args[args.indexOf(a) - 1] !== "--data" && args[args.indexOf(a) - 1] !== "--date");
+const csvPath = args.find((a) => !a.startsWith("--") && !["--data", "--date", "--flow"].includes(args[args.indexOf(a) - 1]));
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const dataPath = opt("--data") || new URL("../data/portfolio.json", import.meta.url).pathname;
 const asOf = opt("--date") || jstToday();
 const dryRun = args.includes("--dry-run");
+const flowArg = opt("--flow");
+const newMoney = flowArg != null ? Number(flowArg) : 0;
+if (!Number.isFinite(newMoney)) { console.error("--flow は数値（円）で指定してください"); process.exit(1); }
 if (!csvPath) { console.error("使い方: node scripts/import_rakuten_csv.mjs <csv> [--data path] [--date YYYY-MM-DD] [--dry-run]"); process.exit(1); }
 
 const raw = fs.readFileSync(csvPath);
@@ -77,12 +82,17 @@ for (const r of rows.slice(hdr + 1)) {
     if (cur != null) { prod.price = cur; prod.priceDate = asOf; }
     holdings.push({ productKey: prod.key, account: acct, units: qty, cost });
   } else if (kind === "国内債券") {
-    // 個人向け国債（額面・元本保証）は安全資産、それ以外の利付国債（新窓販など、時価評価）は国内国債（固定）
+    // 個人向け国債の変動10年は安全資産。個人向け国債の固定5年・固定3年と、それ以外の利付国債（新窓販など）は国内国債（固定）
+    // 回号は種類ごとに別の番号なので、種類をキーに含める（変動10年は従来どおり jgbNNN）
     const kojin = /個人/.test(name);
+    const fixedYears = kojin ? (name.match(/固定\s*(\d+)\s*年/) || [])[1] : null;
     const m = name.match(/第\s*(\d+)\s*回/);
-    const key = (kojin ? "jgb" : "jgbfix") + (m ? m[1] : "_" + asOf.replace(/-/g, ""));
+    const no = m ? m[1] : "_" + asOf.replace(/-/g, "");
+    const key = kojin ? (fixedYears ? `jgbf${fixedYears}_${no}` : "jgb" + no) : "jgbfix" + no;
+    const classKey = kojin && !fixedYears ? "safe" : "jgbFix";
     prod = findProduct((x) => x.key === key)
-      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey: kojin ? "safe" : "jgbFix", note: kojin ? "額面評価" : "時価評価（満期保有で利回り確定）" });
+      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey,
+        note: kojin ? "額面評価（1年後から元本で換金可）" : "時価評価（満期保有で利回り確定）" });
     holdings.push({ productKey: prod.key, account: acct, valueOverride: value, cost });
   } else if (kind === "外貨預り金") {
     prod = ensureProduct({ key: "cash_usd", name: "米ドル預り金", kind: "manual", classKey: "cash" });
@@ -116,14 +126,16 @@ if (jpyCash > 0) {
   seen.add("cash_jpy");
 }
 
-// 入出金（フロー）＝ 新しい保有の評価額 − 以前の保有を今回の価格で評価した額
-// 売却して預り金に残る分はフロー0、新たに入金して買った分だけがフローになる
+// 入出金（フロー）は --flow で明示した新規入金だけ（既定 0）。
+// 新しい評価額と以前の保有の評価額の差のうち、入金以外の分（売却見積もりと実額の差、約定価格と日次処理の価格の差など）は
+// 運用の損益としてリターンに含める（以前はこの差をすべて入出金として記録していたため、損益がリターンから消えていた）
 const before = summarize(p);
 const prevKeys = new Set(p.holdings.map((h) => h.productKey));
 p.holdings = merged;
 p.holdingsAsOf = asOf;
 const after = summarize(p);
-const flow = Math.round(after.total - before.total);
+const flow = Math.round(newMoney);
+const revalued = Math.round(after.total - before.total - newMoney);
 const snap = { date: asOf, total: Math.round(after.total), cost: Math.round(after.cost), flow, byClass: {} };
 for (const [k, v] of Object.entries(after.byClass)) snap.byClass[k] = Math.round(v);
 const same = (p.history || []).find((x) => x.date === asOf);
@@ -144,7 +156,7 @@ const msg = `楽天証券CSV（${asOf}）から保有を更新: ${merged.length}
 p.aiLog = trimAiLog((p.aiLog || []).concat({ date: asOf, actor: "claude", message: msg }));
 
 console.log(msg);
-console.log(`評価額 ${Math.round(before.total).toLocaleString()} → ${Math.round(after.total).toLocaleString()}（入出金として記録: ${flow.toLocaleString()}円、価格未取得 ${p.holdings.length - after.valued} 件）`);
-if (Math.abs(flow) > 0) console.log("※ 入出金の額が想定（新規入金額）と違う場合は、売却済み商品の価格が古い可能性があります。");
+console.log(`評価額 ${Math.round(before.total).toLocaleString()} → ${Math.round(after.total).toLocaleString()}（入出金として記録: ${flow.toLocaleString()}円、評価差（損益扱い）: ${revalued.toLocaleString()}円、価格未取得 ${p.holdings.length - after.valued} 件）`);
+if (Math.abs(revalued) > Math.max(20000, after.total * 0.01)) console.log("※ 評価差が大きい場合は、積立以外の入金を --flow で指定し忘れていないか、売却済み商品の価格が古くないかを確認してください。");
 if (created.length) console.log("新規登録:", created.map((x) => `${x.key} ${x.name}`).join(" / "));
 if (!dryRun) fs.writeFileSync(dataPath, JSON.stringify(p, null, 2) + "\n");

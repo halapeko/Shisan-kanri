@@ -1090,7 +1090,7 @@ function renderPf(p){
       <td class="num">${(r.st.pLoss10*100).toFixed(0)}%</td><td class="num">${(r.st.p10y5*100).toFixed(0)}%</td><td class="num minus">${r.st.stress.toFixed(0)}%</td></tr>`).join("")}</tbody></table></div>
     <p class="chart-caption" style="margin-top:6px">再構築はリターンを上げるためではなく、同程度のリターンを小さな下振れで得るためのもの。株式の前提が年4.5%なら私案は4.4%、7.5%なら6.2%。</p>` : "";
   const decs = ((p.project||{}).decisions)||[];
-  const decHtml = decs.length ? `<ul class="decs">${decs.map(d=> `<li><span class="st-chip ${d.chosen?"done":"soon"}">${d.chosen?"決定":"判断待ち"}</span><span>${esc(d.title)}：${d.chosen ? "<strong>"+esc(d.chosen)+"</strong>" : esc(d.options.join("／"))}</span></li>`).join("")}</ul>` : "";
+  const decHtml = decs.length ? `<ul class="decs">${decs.map(d=> `<li><span class="st-chip ${d.chosen?"done":d.lapsed?"skipped":"soon"}">${d.chosen?"決定":d.lapsed?"期限切れ":"判断待ち"}</span><span>${esc(d.title)}：${d.chosen ? "<strong>"+esc(d.chosen)+"</strong>" : d.lapsed ? esc(d.resolution||"当初計画のまま") : esc(d.options.join("／"))+(d.due ? `（期限 ${esc(d.due.slice(5).replace("-","/"))}）` : "")}</span></li>`).join("")}</ul>` : "";
 
   /* --- 配分 --- */
   const allocHtml = (p.assetClasses||[]).filter(c=> c.targetPct > 0 || (byClass[c.key]||0) > 0).map(c=>{
@@ -1121,7 +1121,7 @@ function renderPf(p){
     const items = ss.map(s=>{ const st = stepState(s); return `<li class="st-${st}">
         <span class="st-chip ${st}">${stLabel[st]}</span>
         <span class="st-body"><span class="st-title">${esc(s.title)}</span>${s.detail ? `<span class="st-detail">${esc(s.detail)}</span>` : ""}</span>
-        <span class="st-due num">${s.status === "done" ? esc(s.doneDate||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
+        <span class="st-due num">${s.status === "done" ? esc(s.doneDate||s.doneAt||"") : esc((s.due||"").slice(5).replace("-","/"))}</span>
       </li>`; }).join("");
     return `<div class="phase"><div class="phase-h"><span>Phase ${ph.id}　${esc(ph.name)}</span><span class="phase-m">${esc(ph.period)}・${dn}/${sn}</span></div>
       <div class="phase-g">${esc(ph.goal)}</div>${ss.length ? `<ul class="steps">${items}</ul>` : ""}</div>`;
@@ -1144,7 +1144,8 @@ function renderPf(p){
     if(prod.leveraged) tags.push('<span class="tag ng">R1違反</span>');
     if(prod.planned === "sell") tags.push('<span class="tag plan">売却予定</span>');
     if(prod.planned === "review") tags.push('<span class="tag plan">選別中</span>');
-    if(h.estimated) tags.push('<span class="tag">積立を推定反映</span>');
+    if(h.estimatedCost) tags.push('<span class="tag">積立を推定反映</span>');
+    else if(h.estimated) tags.push('<span class="tag">見積もり</span>');
     if(prod.kind === "stock" && prod.planned === "keep" && !(prod.thesis && prod.exitRule)) tags.push('<span class="tag warn">撤退条件 未記録</span>');
     if(prod.kind === "stock" && plp != null && plp <= -(pol.stockReviewDrawdownPct||15)) tags.push(`<span class="tag warn">-${pol.stockReviewDrawdownPct||15}%見直し</span>`);
     if(prod.active) tags.push('<span class="tag">アクティブ</span>');
