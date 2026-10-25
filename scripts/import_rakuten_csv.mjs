@@ -82,12 +82,17 @@ for (const r of rows.slice(hdr + 1)) {
     if (cur != null) { prod.price = cur; prod.priceDate = asOf; }
     holdings.push({ productKey: prod.key, account: acct, units: qty, cost });
   } else if (kind === "国内債券") {
-    // 個人向け国債（額面・元本保証）は安全資産、それ以外の利付国債（新窓販など、時価評価）は国内国債（固定）
+    // 個人向け国債の変動10年は安全資産。個人向け国債の固定5年・固定3年と、それ以外の利付国債（新窓販など）は国内国債（固定）
+    // 回号は種類ごとに別の番号なので、種類をキーに含める（変動10年は従来どおり jgbNNN）
     const kojin = /個人/.test(name);
+    const fixedYears = kojin ? (name.match(/固定\s*(\d+)\s*年/) || [])[1] : null;
     const m = name.match(/第\s*(\d+)\s*回/);
-    const key = (kojin ? "jgb" : "jgbfix") + (m ? m[1] : "_" + asOf.replace(/-/g, ""));
+    const no = m ? m[1] : "_" + asOf.replace(/-/g, "");
+    const key = kojin ? (fixedYears ? `jgbf${fixedYears}_${no}` : "jgb" + no) : "jgbfix" + no;
+    const classKey = kojin && !fixedYears ? "safe" : "jgbFix";
     prod = findProduct((x) => x.key === key)
-      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey: kojin ? "safe" : "jgbFix", note: kojin ? "額面評価" : "時価評価（満期保有で利回り確定）" });
+      || ensureProduct({ key, name: name.replace(/個人国債/, "個人向け国債").replace(/\s+/g, " "), kind: "manual", classKey,
+        note: kojin ? "額面評価（1年後から元本で換金可）" : "時価評価（満期保有で利回り確定）" });
     holdings.push({ productKey: prod.key, account: acct, valueOverride: value, cost });
   } else if (kind === "外貨預り金") {
     prod = ensureProduct({ key: "cash_usd", name: "米ドル預り金", kind: "manual", classKey: "cash" });
