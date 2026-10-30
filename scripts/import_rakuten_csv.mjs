@@ -2,7 +2,8 @@
  * 楽天証券「保有商品一覧（すべて）」CSV（assetbalanceall_*.csv, Shift_JIS）から
  * data/portfolio.json の保有を全面更新する。
  *
- *   node scripts/import_rakuten_csv.mjs <csvファイル> [--data <portfolio.json>] [--date YYYY-MM-DD] [--flow 円] [--dry-run]
+ *   node scripts/import_rakuten_csv.mjs <csvファイル> [--data <portfolio.json>] [--date YYYY-MM-DD] [--flow 円] [--bank 円] [--dry-run]
+ *   --bank: 楽天銀行の実際の残高。国債の申込済みで受渡前の代金（pending の保有）を引いた額を、待機資金 cash_bank の帳簿値にする
  *   --flow: 前回の取り込み以降に、日次処理の積立以外で新しく入金した額（既定 0）。
  *           売却・買い替え・積立の実数への置き換えは入金ではないので含めない
  *
@@ -11,7 +12,7 @@
  * - 照合できない商品は新規登録し、分類の確認を促すアラートを立てる
  */
 import fs from "node:fs";
-import { jstToday, summarize, trimAiLog } from "./lib.mjs";
+import { jstToday, summarize, trimAiLog, productOf } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const csvPath = args.find((a) => !a.startsWith("--") && !["--data", "--date", "--flow"].includes(args[args.indexOf(a) - 1]));
@@ -19,6 +20,8 @@ const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const dataPath = opt("--data") || new URL("../data/portfolio.json", import.meta.url).pathname;
 const asOf = opt("--date") || jstToday();
 const dryRun = args.includes("--dry-run");
+const bankArg = opt("--bank");
+if (bankArg != null && !Number.isFinite(Number(bankArg))) { console.error("--bank は数値（円）で指定してください"); process.exit(1); }
 const flowArg = opt("--flow");
 const newMoney = flowArg != null ? Number(flowArg) : 0;
 if (!Number.isFinite(newMoney)) { console.error("--flow は数値（円）で指定してください"); process.exit(1); }
@@ -126,6 +129,33 @@ if (jpyCash > 0) {
   seen.add("cash_jpy");
 }
 
+// CSVに出ない手入力の保有を引き継ぐ：楽天銀行の待機資金（cash_bank）と、申込済みで発行前の国債（pending）。
+// 引き継がないと取込みのたびに消えて、その分が偽の損失になる（以前の保有を全面置換していたため）
+const carried = [];
+for (const h of p.holdings) {
+  if (!(h.productKey === "cash_bank" || h.pending)) continue;
+  if (merged.some((m) => m.productKey === h.productKey && m.account === h.account)) continue; // 発行後などCSVに載ったものはCSVを優先
+  merged.push({ ...h }); carried.push(h); seen.add(h.productKey);
+}
+// 売却代金の見積もり（cash_jpy, estimated）は、CSVの預り金が0円なら楽天銀行に移ったとみなして cash_bank に合算する
+const foldedCash = [];
+const estCash = p.holdings.find((h) => h.productKey === "cash_jpy" && h.estimated);
+const bankHolding = merged.find((m) => m.productKey === "cash_bank");
+if (estCash && bankHolding && !merged.some((m) => m.productKey === "cash_jpy")) {
+  bankHolding.valueOverride = (bankHolding.valueOverride || 0) + (estCash.valueOverride || 0);
+  bankHolding.cost = (bankHolding.cost || 0) + (estCash.valueOverride || 0);
+  foldedCash.push(estCash);
+}
+// 楽天銀行の実際の残高が分かるときは、受渡前の国債代金を引いた額を帳簿値にする（評価差は損益として表れる）
+if (bankArg != null && bankHolding) {
+  const reserved = merged.filter((m) => m.pending).reduce((a, m) => a + (m.valueOverride || 0), 0);
+  bankHolding.valueOverride = Number(bankArg) - reserved;
+  bankHolding.cost = bankHolding.valueOverride;
+}
+// 引き継がれずに消える手入力の保有があれば知らせる
+const dropped = p.holdings.filter((h) => productOf(p, h.productKey)?.kind === "manual"
+  && !merged.some((m) => m.productKey === h.productKey && m.account === h.account) && !foldedCash.includes(h));
+
 // 入出金（フロー）は --flow で明示した新規入金だけ（既定 0）。
 // 新しい評価額と以前の保有の評価額の差のうち、入金以外の分（売却見積もりと実額の差、約定価格と日次処理の価格の差など）は
 // 運用の損益としてリターンに含める（以前はこの差をすべて入出金として記録していたため、損益がリターンから消えていた）
@@ -158,5 +188,9 @@ p.aiLog = trimAiLog((p.aiLog || []).concat({ date: asOf, actor: "claude", messag
 console.log(msg);
 console.log(`評価額 ${Math.round(before.total).toLocaleString()} → ${Math.round(after.total).toLocaleString()}（入出金として記録: ${flow.toLocaleString()}円、評価差（損益扱い）: ${revalued.toLocaleString()}円、価格未取得 ${p.holdings.length - after.valued} 件）`);
 if (Math.abs(revalued) > Math.max(20000, after.total * 0.01)) console.log("※ 評価差が大きい場合は、積立以外の入金を --flow で指定し忘れていないか、売却済み商品の価格が古くないかを確認してください。");
+if (carried.length) console.log("引き継いだ手入力の保有:", carried.map((h) => `${h.productKey} ${Math.round(h.valueOverride || 0).toLocaleString()}円`).join(" / "));
+if (foldedCash.length) console.log(`見積もりの預り金 ${Math.round(foldedCash[0].valueOverride).toLocaleString()}円は、楽天銀行に移ったとみなして cash_bank に合算しました（実際の残高が分かれば --bank で指定）`);
+if (bankArg != null && bankHolding) console.log(`cash_bank の帳簿値: ${Math.round(bankHolding.valueOverride).toLocaleString()}円（銀行残高 ${Number(bankArg).toLocaleString()}円 − 受渡前の国債代金）`);
+if (dropped.length) console.warn("※ 次の手入力の保有はCSVに無く、引き継ぎ対象でもないため消えました。必要なら復元してください:", dropped.map((h) => `${h.productKey} ${Math.round(h.valueOverride || 0).toLocaleString()}円`).join(" / "));
 if (created.length) console.log("新規登録:", created.map((x) => `${x.key} ${x.name}`).join(" / "));
 if (!dryRun) fs.writeFileSync(dataPath, JSON.stringify(p, null, 2) + "\n");
