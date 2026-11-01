@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "lastUpdated": "2026-10-31T00:58:47.721Z",
+  "lastUpdated": "2026-11-01T01:34:58.666Z",
   "project": {
     "name": "ポートフォリオ再構築PJ v2",
     "startedAt": "2026-10-04",
@@ -334,8 +334,8 @@
       "kind": "gold_jpyg",
       "classKey": "gold",
       "note": "円/g。国際スポット(GC=F)×USDJPY÷31.1035の概算",
-      "price": 20452.86,
-      "priceDate": "2026-10-29"
+      "price": 19759,
+      "priceDate": "2026-10-30"
     },
     {
       "key": "jgb191",
@@ -506,15 +506,27 @@
     }
   ],
   "fx": {
-    "USDJPY": 157.8,
+    "USDJPY": 157.56,
     "date": "2026-10-30"
   },
   "holdings": [
     {
+      "productKey": "mufg",
+      "account": "特定",
+      "shares": 100,
+      "cost": 356200
+    },
+    {
+      "productKey": "orix",
+      "account": "特定",
+      "shares": 25,
+      "cost": 166850
+    },
+    {
       "productKey": "rakuten225",
       "account": "NISAつみたて",
       "units": 290770,
-      "cost": 600000
+      "cost": 600001
     },
     {
       "productKey": "sp500",
@@ -529,6 +541,18 @@
       "cost": 243448
     },
     {
+      "productKey": "jgb199",
+      "account": "特定",
+      "valueOverride": 200000,
+      "cost": 200000
+    },
+    {
+      "productKey": "jgbf5_187",
+      "account": "特定",
+      "valueOverride": 250000,
+      "cost": 250000
+    },
+    {
       "productKey": "jgb191",
       "account": "特定",
       "valueOverride": 300000,
@@ -537,61 +561,24 @@
     {
       "productKey": "cash_usd",
       "account": "-",
-      "valueOverride": 257,
-      "cost": 257
+      "valueOverride": 258,
+      "cost": 258
     },
     {
       "productKey": "gold_physical",
       "account": "-",
-      "grams": 4.75509,
-      "cost": 124367
-    },
-    {
-      "productKey": "mufg",
-      "account": "特定",
-      "shares": 100,
-      "cost": 356200
-    },
-    {
-      "productKey": "orix",
-      "account": "特定",
-      "shares": 25,
-      "cost": 166850
+      "grams": 6.4483,
+      "cost": 159367
     },
     {
       "productKey": "cash_bank",
       "account": "-",
-      "valueOverride": 1138166,
-      "cost": 1138166,
-      "note": "帳簿の残高＝10/13〜15の売却代金 1,588,166円 − 国債の約定 450,000円（固定5年 第187回25万・変動10年 第199回20万、約定日付で付け替え）。楽天銀行（マネーブリッジ）にあることを利用者が確認（10/25）。国債の代金は受渡日（11/16）に引き落とされるため、それまで銀行の実残高は帳簿より約45万円多く見える（予約済みで使えない）"
-    },
-    {
-      "productKey": "cash_jpy",
-      "account": "-",
-      "valueOverride": 272766,
-      "cost": 272766,
-      "estimated": true,
-      "estimatedSince": "2026-10-25",
-      "note": "Sansan 100株・VRT 2株の売却代金の見積もり（10/24の終値で計算）。約定額は楽天CSVで確定。受渡後は楽天銀行（マネーブリッジ）に移る"
-    },
-    {
-      "productKey": "jgbf5_187",
-      "account": "特定",
-      "valueOverride": 250000,
-      "cost": 250000,
-      "note": "10/25申込・10/26約定。11/16発行（発行前は楽天の保有一覧に出ない見込み。CSV取込みで消えないよう pending を付けている）",
-      "pending": true
-    },
-    {
-      "productKey": "jgb199",
-      "account": "特定",
-      "valueOverride": 200000,
-      "cost": 200000,
-      "note": "10/25申込・10/26約定。11/16発行（発行前は楽天の保有一覧に出ない見込み。CSV取込みで消えないよう pending を付けている）",
-      "pending": true
+      "valueOverride": 1375698,
+      "cost": 1375698,
+      "note": "帳簿の残高＝売却代金（10/13〜15の1,588,166円＋Sansan・VRT 272,536円）− 国債の約定 450,000円（第187回25万・第199回20万）− 金現物の買付 35,004円。楽天銀行（マネーブリッジ）にあることを利用者が確認（10/25）。国債の代金は受渡日（11/16）に引き落とされるため、それまで銀行の実残高は帳簿より約45万円多く見える。Sansan・VRTの売却額は実現損益の差からの算出で、銀行残高は未確認"
     }
   ],
-  "holdingsAsOf": "2026-10-25",
+  "holdingsAsOf": "2026-11-01",
   "nisa": {
     "annualTsumitateLimit": 1200000,
     "annualGrowthLimit": 2400000,
@@ -734,7 +721,7 @@
         "phase": 1,
         "due": "2026-10-30",
         "title": "残さないと決めた個別株を売却（残り：Sansan・オリックス25株・VRT 2株の扱い）",
-        "detail": "特定口座。今年の特定口座は通算 約-17万円の見込み（10/25時点の確定-12万円＋Sansan・VRTの見積もり-4.7万円）なので、売っても税金はかからない。相場を理由に時期を動かさない",
+        "detail": "特定口座。今年の特定口座は通算 約-17万円（確定）。相場を理由に時期を動かさない",
         "auto": {
           "type": "plannedSellsDone"
         },
@@ -945,7 +932,7 @@
         "phase": 3,
         "due": "2027-03-15",
         "title": "確定申告で損失を繰越（推奨）",
-        "detail": "今年の特定口座は通算で約-17万円の見込み（10/25時点の確定-120,554円＋Sansan・VRTの見積もり-46,869円。楽天CSVで確定）。申告すれば3年間、国債の利子・金投信の利益・配当と相殺できる（国債の利子は株の損失と通算できる）。毎年申告が必要",
+        "detail": "今年の特定口座は通算で約-17万円（確定）。申告すれば3年間、国債の利子・金投信の利益・配当と相殺できる（国債の利子は株の損失と通算できる）。毎年申告が必要",
         "auto": null,
         "status": "todo"
       },
@@ -2135,6 +2122,21 @@
         "stock": 490850,
         "jgbFix": 250000
       }
+    },
+    {
+      "date": "2026-11-01",
+      "total": 3629455,
+      "cost": 3681822,
+      "flow": 0,
+      "byClass": {
+        "stock": 490850,
+        "jpIdx": 580610,
+        "gEq": 304628,
+        "safe": 500000,
+        "jgbFix": 250000,
+        "cash": 1375956,
+        "gold": 127412
+      }
     }
   ],
   "alerts": [
@@ -2780,6 +2782,11 @@
       "date": "2026-10-31",
       "actor": "github-actions",
       "message": "価格を自動更新（成功 7 / 失敗 0）。評価額合計 ¥3,634,532。要対応アラート 1 件。"
+    },
+    {
+      "date": "2026-11-01",
+      "actor": "claude",
+      "message": "利用者の楽天CSV（11/1）で保有を更新（PR #12 のコードで取込み）。評価額¥3,629,455（待機資金込み）、PJ発足から-2.06%。Sansan・VRTは売却済みで、売却額は実現損益の差から272,536円（見積もり272,766円）。金現物を4.75509g→6.44830g（約3.5万円）買い増し、待機資金から差し引いた。国債3件（第191・199・187回）が保有一覧に載った。オルカンの11/1積立は日曜のため未約定（11/2の日次処理で推定反映）。楽天銀行の残高は未確認。"
     }
   ],
   "options": [
@@ -2860,21 +2867,21 @@
   ],
   "tax": {
     "year": 2026,
-    "asOf": "2026-10-25",
+    "asOf": "2026-11-01",
     "complete": true,
     "source": "楽天証券 実現損益CSV（国内株式・投資信託・米国株）と「今年の特定口座損益」",
     "realizedSpecific": {
-      "domesticStocks": -85419,
-      "usStocks": 12725,
+      "domesticStocks": -87794,
+      "usStocks": -31999,
       "funds": -50474,
-      "total": -123168
+      "total": -170267
     },
     "dividendsSpecific": {
       "gross": 2614,
       "withheld": 509,
       "net": 2105
     },
-    "taxableNet": -120554,
+    "taxableNet": -167653,
     "refundScheduled": 509,
     "realizedNisa": {
       "domesticStocks": 68740,
@@ -2883,19 +2890,7 @@
       "total": 186631,
       "note": "NISA内の損益は税金に影響しない。売却しても今年の年間枠は戻らない（生涯枠は翌年に簿価分戻る）"
     },
-    "note": "今年の特定口座は通算 約-17万円の見込み（10/25時点の確定: 譲渡損益 -123,168円＋配当 2,614円＝-120,554円、楽天の実現損益CSV。10/25〜26のSansan・VRTの売却見積もり -46,869円は含まない）。相殺できる利益はなく、税金はかからない。損失は確定申告で3年繰越でき、国債の利子・金投信の利益・配当と相殺できる",
-    "pendingSales": [
-      {
-        "name": "Sansan",
-        "estimatedPl": -1475,
-        "date": "2026-10-25"
-      },
-      {
-        "name": "バーティブ・ホールディングス（VRT）",
-        "estimatedPl": -45394,
-        "date": "2026-10-25"
-      }
-    ],
-    "estimatedAdditional": -46869
+    "note": "今年の特定口座は通算 約-167,653円（譲渡損益 -170,267円＋配当 2,614円）。楽天の実現損益CSV（10/25）に、11/1の保有一覧の実現損益の差から算出したSansan・VRTの売却損を加えた。相殺できる利益はなく、税金はかからない。損失は確定申告で3年繰越でき、国債の利子・金投信の利益・配当と相殺できる",
+    "pendingSales": []
   }
 }
