@@ -125,3 +125,30 @@ export function effectiveWeights(p) {
   }
   return w;
 }
+
+/* ---------- Yahoo Finance chart API の応答から「直近の確定した終値」を選ぶ ----------
+ * r: chart.result[0]、nowSec: 現在のUNIX秒
+ * - 株式・ETF：日足の最終バーが取引中（途中値）なら捨てて、前の確定バーを使う
+ * - 先物（GC=F）・為替（JPY=X）：ほぼ24時間取引で、currentTradingPeriod が暦日丸ごと（ETの0時〜24時）になる。
+ *   これを「取引中」と判定すると、確定済みの前日バーを捨てて毎日1営業日古い値になる。
+ *   そのため最新気配（regularMarketPrice）を使い、日付は取引所の現地日付（gmtoffset）で付ける
+ */
+export function pickLast(r, nowSec) {
+  const meta = r?.meta || {};
+  const stamps = r?.timestamp || [];
+  const closes = r?.indicators?.quote?.[0]?.close || [];
+  const continuous = meta.instrumentType === "FUTURE" || meta.instrumentType === "CURRENCY" || /=[FX]$/.test(meta.symbol || "");
+  if (continuous && Number.isFinite(meta.regularMarketPrice) && meta.regularMarketTime) {
+    const off = Number.isFinite(meta.gmtoffset) ? meta.gmtoffset : 0;
+    return { price: meta.regularMarketPrice, date: new Date((meta.regularMarketTime + off) * 1000).toISOString().slice(0, 10), mode: "quote" };
+  }
+  const reg = meta.currentTradingPeriod?.regular;
+  let n = closes.length;
+  while (n > 0 && closes[n - 1] == null) n--;
+  if (n > 0 && reg && stamps[n - 1] >= reg.start && stamps[n - 1] <= reg.end && nowSec < reg.end) n--; // 取引中の途中バー
+  while (n > 0 && closes[n - 1] == null) n--;
+  const price = n > 0 ? closes[n - 1] : meta.regularMarketPrice;
+  const ts = n > 0 && stamps[n - 1] ? stamps[n - 1] : meta.regularMarketTime;
+  const date = ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10) : null;
+  return { price, date, mode: "bar" };
+}

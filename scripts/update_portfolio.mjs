@@ -12,7 +12,7 @@
  * 依存パッケージなし（Node 20+）。
  */
 import fs from "node:fs";
-import { jstToday, productOf, holdingValue, summarize, stepAutoDone, trimAiLog } from "./lib.mjs";
+import { jstToday, productOf, holdingValue, summarize, stepAutoDone, trimAiLog, pickLast } from "./lib.mjs";
 
 const PATH = new URL("../data/portfolio.json", import.meta.url).pathname;
 const p = JSON.parse(fs.readFileSync(PATH, "utf8"));
@@ -42,7 +42,7 @@ async function fetchFundNav(prod) {
   return best;
 }
 
-const DEBUG_SYMBOLS = new Set(["GC=F", "ETN", "VRT"]);
+const DEBUG_SYMBOLS = new Set(["GC=F", "JPY=X", "8306.T"]);
 const iso = (t) => (t ? new Date(t * 1000).toISOString().slice(0, 16) + "Z" : "-");
 async function yahooLast(symbol) {
   const url =
@@ -53,24 +53,15 @@ async function yahooLast(symbol) {
   const j = await res.json();
   const r = j?.chart?.result?.[0];
   if (!r) throw new Error(j?.chart?.error?.description || "chart API 応答が不正");
-  // 日足の最終バーは、取引時間中だと未確定の途中値になる。日次処理は日本時間の午前に走るため、
-  // 取引中のバーは捨てて「直近の確定した終値」を使う（取引時間は currentTradingPeriod で判定）
-  const stamps = r.timestamp || [];
-  const closes = r.indicators?.quote?.[0]?.close || [];
-  const reg = r.meta?.currentTradingPeriod?.regular;
-  const nowSec = Date.now() / 1000;
-  let n = closes.length;
-  while (n > 0 && closes[n - 1] == null) n--;
-  if (n > 0 && reg && stamps[n - 1] >= reg.start && stamps[n - 1] <= reg.end && nowSec < reg.end) n--; // 取引中の途中バー
-  while (n > 0 && closes[n - 1] == null) n--;
-  const price = n > 0 ? closes[n - 1] : r.meta?.regularMarketPrice;
+  const { price, date: d0, mode } = pickLast(r, Date.now() / 1000);
   if (!Number.isFinite(price)) throw new Error("終値を取得できませんでした");
-  const ts = n > 0 && stamps[n - 1] ? stamps[n - 1] : r.meta?.regularMarketTime;
-  const date = ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 10) : today;
-  // 金・米国株が1日遅れる現象の調査用（2026-10-17〜）：末尾3本の時刻と取引時間を記録する
-  if (DEBUG_SYMBOLS.has(symbol))
-    log(`[debug] ${symbol} tz=${r.meta?.exchangeTimezoneName} regMkt=${iso(r.meta?.regularMarketTime)} reg=${iso(reg?.start)}〜${iso(reg?.end)} ` +
-      `last3=${stamps.slice(-3).map((t, i) => `${iso(t)}:${closes[closes.length - 3 + i] ?? "null"}`).join(",")} used=${iso(ts)}`);
+  const date = d0 || today;
+  // 金・為替・日本株の日付ずれ調査用（2026-10-17〜）：応答の時刻と判定結果を記録する
+  if (DEBUG_SYMBOLS.has(symbol)) {
+    const reg = r.meta?.currentTradingPeriod?.regular, stamps = r.timestamp || [], closes = r.indicators?.quote?.[0]?.close || [];
+    log(`[debug] ${symbol} type=${r.meta?.instrumentType} tz=${r.meta?.exchangeTimezoneName} now=${iso(Date.now() / 1000)} regMkt=${iso(r.meta?.regularMarketTime)} ` +
+      `reg=${iso(reg?.start)}〜${iso(reg?.end)} last3=${stamps.slice(-3).map((t, i) => `${iso(t)}:${closes[closes.length - 3 + i] ?? "null"}`).join(",")} mode=${mode} used=${price}@${date}`);
+  }
   return { date, price };
 }
 
