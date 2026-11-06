@@ -209,7 +209,8 @@ if (s.complete && s.total > 0) {
   if (stockW > pol.maxStockWeightPct || (capOpen && stockW > pol.maxStockWeightPct - 0.5)) {
     const capSteps = stepsForClass("stock", 1);
     raise("cap:stock", capSteps.length ? "info" : "action",
-      `【ルールR2】個別株が合計 ${stockW.toFixed(1)}%（上限 ${pol.maxStockWeightPct}%）。約 ${yen(((stockW - pol.maxStockWeightPct) / 100) * T)} の超過。新規の個別株購入は停止。` +
+      `【ルールR2】個別株が合計 ${stockW.toFixed(1)}%（上限 ${pol.maxStockWeightPct}%）。` +
+      (stockW > pol.maxStockWeightPct ? `約 ${yen(((stockW - pol.maxStockWeightPct) / 100) * T)} の超過。` : `上限の手前に戻ったが、${(pol.maxStockWeightPct - 0.5).toFixed(1)}%以下になるまで警告を残す。`) + "新規の個別株購入は停止。" +
       (capSteps.length ? `移行プランで対応中（${capSteps.map((x) => x.id).join("・")}）。` : ""));
   }
   for (const prod of p.products.filter((x) => x.kind === "stock" && held.has(x.key))) {
