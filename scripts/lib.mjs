@@ -42,12 +42,18 @@ export function summarize(p) {
 }
 
 // account は文字列か配列（NISAつみたての自動積立をまとめ買いと区別するため）
-export function costOf(p, productKey, account) {
+export function costOf(p, productKey, account, withEstimated = false) {
   const ok = (a) => !account || (Array.isArray(account) ? account.includes(a) : a === account);
-  // 積立の推定反映分（estimatedCost）は、楽天CSVで実数に置き換わるまで数えない
+  // 積立の推定反映分（estimatedCost）は、楽天CSVで実数に置き換わるまで数えない（withEstimated で含める）
   return p.holdings
     .filter((h) => h.productKey === productKey && ok(h.account))
-    .reduce((s, h) => s + Math.max(0, (h.cost || 0) - (h.estimatedCost || 0)), 0);
+    .reduce((s, h) => s + Math.max(0, (h.cost || 0) - (withEstimated ? 0 : h.estimatedCost || 0)), 0);
+}
+
+// 推定の積立を含めれば達成しているが、実数（楽天CSV）では未確認のステップ
+export function stepEstimatedDone(p, step) {
+  const a = step.auto;
+  return !!a && a.type === "costAtLeast" && !stepAutoDone(p, step) && costOf(p, a.productKey, a.account, true) >= a.yen;
 }
 
 // 計画ステップの自動完了判定
