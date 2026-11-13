@@ -208,7 +208,7 @@ if (s.complete && s.total > 0) {
   const capOpen = alerts.some((a) => a.id === "cap:stock" && a.status === "open");
   if (stockW > pol.maxStockWeightPct || (capOpen && stockW > pol.maxStockWeightPct - 0.5)) {
     const capSteps = stepsForClass("stock", 1);
-    raise("cap:stock", capSteps.length ? "info" : "action",
+    raise("cap:stock", capSteps.length && stockW <= pol.maxStockWeightPct + 1 ? "info" : "action",
       `【ルールR2】個別株が合計 ${stockW.toFixed(1)}%（上限 ${pol.maxStockWeightPct}%）。` +
       (stockW > pol.maxStockWeightPct ? `約 ${yen(((stockW - pol.maxStockWeightPct) / 100) * T)} の超過。` : `上限の手前に戻ったが、${(pol.maxStockWeightPct - 0.5).toFixed(1)}%以下になるまで警告を残す。`) + "新規の個別株購入は停止。" +
       (capSteps.length ? `移行プランで対応中（${capSteps.map((x) => x.id).join("・")}）。` : ""));
@@ -243,7 +243,7 @@ if (s.complete && s.total > 0) {
     raise("floor:safe", "warn", `【ルールR9】安全資産（国債・現金）が ${safeW.toFixed(1)}%（下限 ${pol.minSafeWeightPct}%）。個人向け国債の購入を検討。`);
   const liqW = ((s.byClass.cash || 0) / T) * 100;
   if (pol.minLiquidPct && liqW < pol.minLiquidPct)
-    raise("floor:liquid", "info", `【ルールR9】すぐ動かせる現金等が ${liqW.toFixed(1)}%（目安 ${pol.minLiquidPct}%以上）。個人向け国債は発行後1年は換金できないため、急な出費や下落時の買い増し用に現金を残す。`);
+    raise("floor:liquid", liqW < pol.minLiquidPct - 0.5 ? "warn" : "info", `【ルールR9】すぐ動かせる現金等が ${liqW.toFixed(1)}%（目安 ${pol.minLiquidPct}%以上）。個人向け国債は発行後1年は換金できないため、急な出費や下落時の買い増し用に現金を残す。`);
 
   // R4 年末の損出し
   const month = Number(today.slice(5, 7));
@@ -283,7 +283,7 @@ for (const st of openSteps) {
   if (!st.due) continue;
   const days = (new Date(st.due) - new Date(today)) / 86400e3;
   // 申込済みで発行・受渡を待っているステップ（国債など、CSVに出るまで自動完了しない）は期限超過にしない
-  if (st.appliedAt) { raise(`plan:applied:${st.id}`, "info", `【移行プラン・申込済み】${st.title}（${st.appliedAt} 申込）。発行後に楽天の保有一覧（CSV）を貼ると完了になります。`); continue; }
+  if (st.appliedAt) { raise(`plan:applied:${st.id}`, "info", `【移行プラン・申込済み】${st.title}（${st.appliedAt} 申込）。約定後は発行前でも楽天の保有一覧に載ります。次のCSV取込みで確定します。`); continue; }
   // 推定の積立を含めれば達成している（楽天CSVで実数に置き換わるのを待っている）ものは、催促は info で足りる
   if (days < 0 && stepEstimatedDone(p, st)) { raise(`plan:estimated:${st.id}`, "info", `【移行プラン・実数の確認待ち】${st.title}（期限 ${st.due}）。推定の積立で達成済み。楽天の保有一覧（CSV）を貼ると確定します。`); continue; }
   if (days < 0) raise(`plan:overdue:${st.id}`, "action", `【移行プラン・期限超過】${st.title}（期限 ${st.due}）。${st.detail || ""}`);
@@ -304,7 +304,7 @@ for (const h of p.holdings) {
   const days = (new Date(today) - new Date(h.estimatedSince)) / 86400e3;
   const what = h.estimatedCost ? `${yen(h.estimatedCost)} の積立を推定で反映したまま` : "見積もりの金額（売却代金など）のまま";
   if (days >= 10)
-    raise(`verify:estimated:${h.productKey}:${h.account}`, "info",
+    raise(`verify:estimated:${h.productKey}:${h.account}`, days >= 21 ? "warn" : "info",
       `【要確認】${productOf(p, h.productKey)?.name || h.productKey}（${h.account}）が${what} ${Math.round(days)} 日経っています。楽天証券の保有一覧（CSV）を貼ると実数に置き換わります。`);
 }
 // 保有中の商品の価格が古い（取得に失敗し続けている）
