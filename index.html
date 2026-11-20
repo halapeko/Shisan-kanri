@@ -1095,11 +1095,11 @@ function renderPf(p){
   /* --- 配分 --- */
   const allocHtml = (p.assetClasses||[]).filter(c=> c.targetPct > 0 || (byClass[c.key]||0) > 0).map(c=>{
     const w = total ? (byClass[c.key]||0)/total*100 : 0;
-    const d = w - c.targetPct, over = total > 0 && Math.abs(d) > band && !c.excludeFromDrift;
+    const cband = c.driftBandPct ?? band, d = w - c.targetPct, over = total > 0 && Math.abs(d) > cband && !c.excludeFromDrift;
     return `<div class="pf-row num">
       <span>${esc(c.name)}</span>
       <div class="bar-track" title="現状 ${w.toFixed(1)}% ／ 基本配分 ${c.targetPct}%">
-        <div class="bar-band" style="left:${Math.max(0,c.targetPct-band)}%;width:${band*2}%"></div>
+        <div class="bar-band" style="left:${Math.max(0,c.targetPct-cband)}%;width:${cband*2}%"></div>
         <div class="bar-now" style="width:${Math.min(100,w).toFixed(1)}%;background:${esc(c.color||"#3A6EA5")}"></div>
         <div class="bar-tgt" style="left:${c.targetPct}%"></div>
       </div>

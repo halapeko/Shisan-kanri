@@ -185,10 +185,13 @@ if (s.complete && s.total > 0) {
     if (c.excludeFromDrift) continue;
     const w = ((s.byClass[c.key] || 0) / T) * 100;
     const d = w - c.targetPct;
-    if (Math.abs(d) <= pol.rebalanceBandPct) continue;
+    // クラスごとの許容幅（計画上すでに目標からのズレを許容しているクラス用）。いったん開いたら 0.5pt 戻るまで開いたままにする
+    const band = c.driftBandPct ?? pol.rebalanceBandPct;
+    const driftOpen = alerts.some((a) => a.id === `drift:${c.key}` && a.status === "open");
+    if (Math.abs(d) <= band && !(driftOpen && Math.abs(d) > band - 0.5)) continue;
     const amt = (Math.abs(d) / 100) * T;
     const steps = stepsForClass(c.key, d);
-    const how = d > 0 ? "積立・新規購入を止めて比率を下げる" : "新規資金・積立をこのクラスへ優先して入れる";
+    const how = d > 0 ? "このクラスの新規購入はしない（比率は総資産の増加や他クラスの購入で下がる）" : "新規資金・積立をこのクラスへ優先して入れる";
     const msg = `【配分】${c.name} が ${w.toFixed(1)}%（基本配分 ${c.targetPct}%、${d > 0 ? "+" : ""}${d.toFixed(1)}pt）。約 ${yen(amt)} 分のズレ。${how}。` +
       (steps.length ? `移行プランで対応中（${steps.map((x) => x.id).join("・")}）。` : "");
     raise(`drift:${c.key}`, steps.length ? "info" : "action", msg);
@@ -229,9 +232,12 @@ if (s.complete && s.total > 0) {
     const pct = ((v - h.cost) / h.cost) * 100;
     if (pct > -pol.stockReviewDrawdownPct) continue;
     const planned = prod.planned === "sell" || prod.planned === "review";
-    raise(`review:dd:${prod.key}`, planned && pct > -20 ? "info" : "warn",
+    // 見直し済み（products[].review = {at, nextPct, note}）で、次の見直し線（取得比の%、例 -20）にまだ届いていなければ info。届いたらまた warn
+    const rv = prod.review;
+    const reviewed = !!rv && Number.isFinite(rv.nextPct) && pct > rv.nextPct;
+    raise(`review:dd:${prod.key}`, (planned && pct > -20) || reviewed ? "info" : "warn",
       `【ルールR3】${prod.name} が取得価格から ${pct.toFixed(1)}%（${yen(v - h.cost)}）。` +
-      (planned ? (prod.planned === "sell" ? "移行プランで売却予定。" : "移行プランで残すかどうか選別中。") : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
+      (reviewed ? `見直し済み（${rv.at}）。次の見直し線は ${rv.nextPct}%。${rv.note || ""}` : planned ? (prod.planned === "sell" ? "移行プランで売却予定。" : "移行プランで残すかどうか選別中。") : `見直しライン -${pol.stockReviewDrawdownPct}% に到達。買った理由が崩れていないか確認し、崩れていれば売却。` +
         (prod.exitRule ? `撤退条件:「${prod.exitRule}」` : "撤退条件が未記録。")));
   }
 
